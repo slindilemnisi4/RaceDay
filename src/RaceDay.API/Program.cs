@@ -1,4 +1,7 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RaceDay.API.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +10,32 @@ var builder = WebApplication.CreateBuilder(args);
 // to use the SQLite connection string stored in appsettings.json.
 builder.Services.AddDbContext<RaceDayDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("RaceDayDatabase")));
+
+// Register JWT bearer authentication so future endpoints can validate tokens.
+// Token creation is intentionally deferred to Objective 2E, while password hashing will be implemented in Objective 2B.
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var jwtConfiguration = builder.Configuration.GetSection("Jwt");
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtConfiguration["SecretKey"] ?? string.Empty)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtConfiguration["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtConfiguration["Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+// Add authorization services now so protected endpoints can be introduced later.
+// No controllers are protected at this stage.
+builder.Services.AddAuthorization();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -30,5 +59,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Authentication must run before authorization when protected endpoints are added.
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();
