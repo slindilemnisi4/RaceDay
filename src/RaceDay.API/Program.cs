@@ -44,6 +44,7 @@ builder.Services.AddAuthorization();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 // Register the Swagger generator and API explorer so the OpenAPI document can
@@ -59,6 +60,7 @@ if (app.Environment.IsDevelopment())
     // Keep the built-in OpenAPI JSON endpoint and expose the browser-based
     // Swagger UI for manually testing endpoints as they are added later.
     app.MapOpenApi();
+    app.MapControllers();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
