@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RaceDay.API.Data;
+using RaceDay.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,8 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<RaceDayDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("RaceDayDatabase")));
 
+// Register the password hashing service so future registration and login flows
+// can hash passwords and verify hashes without storing or logging plain text.
+builder.Services.AddScoped<PasswordHashService>();
+
 // Register JWT bearer authentication so future endpoints can validate tokens.
-// Token creation is intentionally deferred to Objective 2E, while password hashing will be implemented in Objective 2B.
+// Token creation is intentionally deferred to Objective 2E.
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
