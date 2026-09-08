@@ -16,8 +16,12 @@ builder.Services.AddDbContext<RaceDayDbContext>(options =>
 // can hash passwords and verify hashes without storing or logging plain text.
 builder.Services.AddScoped<PasswordHashService>();
 
+// Register the JWT service so verified users can receive signed tokens using
+// the configured issuer, audience, secret, and expiration period.
+builder.Services.AddSingleton<JwtTokenService>();
+
 // Register JWT bearer authentication so future endpoints can validate tokens.
-// Token creation is intentionally deferred to Objective 2E.
+// Token creation is handled by JwtTokenService after successful login.
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

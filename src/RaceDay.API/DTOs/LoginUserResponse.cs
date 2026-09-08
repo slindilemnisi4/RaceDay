@@ -13,4 +13,6 @@ public sealed class LoginUserResponse
     public string Email { get; init; } = string.Empty;
 
     public UserRole Role { get; init; }
+
+    public string Token { get; init; } = string.Empty;
 }

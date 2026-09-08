@@ -13,13 +13,16 @@ public sealed class AuthController : ControllerBase
 {
     private readonly RaceDayDbContext dbContext;
     private readonly PasswordHashService passwordHashService;
+    private readonly JwtTokenService jwtTokenService;
 
     public AuthController(
         RaceDayDbContext dbContext,
-        PasswordHashService passwordHashService)
+        PasswordHashService passwordHashService,
+        JwtTokenService jwtTokenService)
     {
         this.dbContext = dbContext;
         this.passwordHashService = passwordHashService;
+        this.jwtTokenService = jwtTokenService;
     }
 
     [HttpPost("register")]
@@ -80,8 +83,8 @@ public sealed class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Verifies credentials and returns safe account details for the next
-    /// authentication step. JWT creation is intentionally handled separately.
+    /// Verifies credentials, creates a signed JWT, and returns safe account
+    /// details for the authenticated client.
     /// </summary>
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginUserResponse), StatusCodes.Status200OK)]
@@ -103,15 +106,18 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid email or password." });
         }
 
-        // Return only public account details. PasswordHash and any future token
-        // are deliberately excluded until the later JWT objective.
+        var token = jwtTokenService.GenerateToken(user);
+
+        // Return only public account details and the signed token. PasswordHash
+        // and the original password are never exposed in the response.
         var response = new LoginUserResponse
         {
             UserID = user.UserID,
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email,
-            Role = user.Role
+            Role = user.Role,
+            Token = token
         };
 
         return Ok(response);
