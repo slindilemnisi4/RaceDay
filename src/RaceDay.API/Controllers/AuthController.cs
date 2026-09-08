@@ -78,4 +78,42 @@ public sealed class AuthController : ControllerBase
 
         return Created($"/api/auth/{user.UserID}", response);
     }
+
+    /// <summary>
+    /// Verifies credentials and returns safe account details for the next
+    /// authentication step. JWT creation is intentionally handled separately.
+    /// </summary>
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginUserResponse>> Login(
+        LoginUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var normalizedEmail = request.Email.Trim().ToUpperInvariant();
+
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(candidate => candidate.Email == normalizedEmail, cancellationToken);
+
+        // Use the same response for an unknown account and an incorrect password
+        // so the endpoint does not reveal which email addresses are registered.
+        if (user is null || !passwordHashService.VerifyPassword(user, request.Password, user.PasswordHash))
+        {
+            return Unauthorized(new { message = "Invalid email or password." });
+        }
+
+        // Return only public account details. PasswordHash and any future token
+        // are deliberately excluded until the later JWT objective.
+        var response = new LoginUserResponse
+        {
+            UserID = user.UserID,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            Role = user.Role
+        };
+
+        return Ok(response);
+    }
 }
