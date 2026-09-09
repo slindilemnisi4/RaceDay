@@ -41,6 +41,9 @@ builder.Services
             ValidateAudience = true,
             ValidAudience = jwtConfiguration["Audience"],
             ValidateLifetime = true,
+            // This enables future [Authorize(Roles = "Organiser")] and
+            // [Authorize(Roles = "Participant")] checks to use the JWT Role claim.
+            RoleClaimType = "Role",
             ClockSkew = TimeSpan.Zero
         };
     });
