@@ -28,6 +28,9 @@ builder.Services
     {
         var jwtConfiguration = builder.Configuration.GetSection("Jwt");
 
+        // Preserve the application's UserID, Email, and Role claim names so
+        // they remain directly available through HttpContext.User later.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -64,7 +67,6 @@ if (app.Environment.IsDevelopment())
     // Keep the built-in OpenAPI JSON endpoint and expose the browser-based
     // Swagger UI for manually testing endpoints as they are added later.
     app.MapOpenApi();
-    app.MapControllers();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -74,5 +76,6 @@ app.UseHttpsRedirection();
 // Authentication must run before authorization when protected endpoints are added.
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
