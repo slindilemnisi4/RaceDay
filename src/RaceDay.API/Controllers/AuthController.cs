@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDay.API.Data;
@@ -25,6 +26,8 @@ public sealed class AuthController : ControllerBase
         this.jwtTokenService = jwtTokenService;
     }
 
+    // Registration must be available before a user has an account or JWT.
+    [AllowAnonymous]
     [HttpPost("register")]
     [ProducesResponseType(typeof(RegisteredUserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -86,6 +89,8 @@ public sealed class AuthController : ControllerBase
     /// Verifies credentials, creates a signed JWT, and returns safe account
     /// details for the authenticated client.
     /// </summary>
+    // Login must be available before a user has an authenticated JWT.
+    [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginUserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
