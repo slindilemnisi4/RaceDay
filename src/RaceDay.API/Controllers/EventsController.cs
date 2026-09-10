@@ -10,7 +10,7 @@ namespace RaceDay.API.Controllers;
 
 [ApiController]
 [Route("api/events")]
-[Authorize(Roles = nameof(UserRole.Organiser))]
+[Authorize]
 public sealed class EventsController : ControllerBase
 {
     private readonly RaceDayDbContext dbContext;
@@ -20,7 +20,44 @@ public sealed class EventsController : ControllerBase
         this.dbContext = dbContext;
     }
 
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyList<EventResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<EventResponse>>> GetAll(
+        CancellationToken cancellationToken)
+    {
+        var events = await dbContext.Events
+            .AsNoTracking()
+            .OrderBy(eventEntity => eventEntity.EventDate)
+            .Select(eventEntity => ToResponse(eventEntity))
+            .ToListAsync(cancellationToken);
+
+        // Both authenticated roles can browse events; no organiser-only role
+        // restriction is applied to this read-only endpoint.
+        return Ok(events);
+    }
+
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<EventResponse>> GetByID(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var eventResponse = await dbContext.Events
+            .AsNoTracking()
+            .Where(eventEntity => eventEntity.EventID == id)
+            .Select(eventEntity => ToResponse(eventEntity))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return eventResponse is null
+            ? NotFound()
+            : Ok(eventResponse);
+    }
+
     [HttpPost]
+    [Authorize(Roles = nameof(UserRole.Organiser))]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

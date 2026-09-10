@@ -33,6 +33,7 @@ public sealed class EventCreationTests
     public async Task ParticipantIsNotAllowedByAuthorizationAttribute()
     {
         var authorize = typeof(EventsController)
+            .GetMethod(nameof(EventsController.Create))!
             .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
             .OfType<AuthorizeAttribute>()
             .Single();
@@ -43,7 +44,12 @@ public sealed class EventCreationTests
     [Fact]
     public void EventsControllerRequiresAuthentication()
     {
+        var controllerAuthorize = typeof(EventsController)
+            .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .OfType<AuthorizeAttribute>()
+            .Single();
         var authorize = typeof(EventsController)
+            .GetMethod(nameof(EventsController.Create))!
             .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
             .OfType<AuthorizeAttribute>()
             .Single();
@@ -51,6 +57,7 @@ public sealed class EventCreationTests
         Assert.Null(typeof(EventsController)
             .GetCustomAttributes(typeof(AllowAnonymousAttribute), inherit: true)
             .SingleOrDefault());
+        Assert.Null(controllerAuthorize.Roles);
         Assert.Equal(nameof(UserRole.Organiser), authorize.Roles);
     }
 
