@@ -117,6 +117,66 @@ public sealed class EventsController : ControllerBase
         return Created($"/api/events/{eventEntity.EventID}", response);
     }
 
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = nameof(UserRole.Organiser))]
+    [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<EventResponse>> Update(
+        int id,
+        UpdateEventRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.EventName)
+            || string.IsNullOrWhiteSpace(request.Description)
+            || string.IsNullOrWhiteSpace(request.Location)
+            || request.EventDate == default
+            || request.RegistrationDeadline == default
+            || request.DistanceKM <= 0
+            || request.EventType is null
+            || !Enum.IsDefined(request.EventType.Value)
+            || request.RegistrationDeadline > request.EventDate)
+        {
+            ModelState.AddModelError(string.Empty, "The event details are invalid.");
+            return ValidationProblem(ModelState);
+        }
+
+        var organizerID = GetAuthenticatedUserID();
+        if (organizerID is null)
+        {
+            return Unauthorized();
+        }
+
+        var eventEntity = await dbContext.Events
+            .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
+
+        if (eventEntity is null)
+        {
+            return NotFound();
+        }
+
+        // Ownership is checked against the stored OrganizerID and the validated
+        // JWT identity. OrganizerID is never accepted from the update request.
+        if (eventEntity.OrganizerID != organizerID.Value)
+        {
+            return Forbid();
+        }
+
+        eventEntity.EventName = request.EventName.Trim();
+        eventEntity.Description = request.Description.Trim();
+        eventEntity.EventDate = request.EventDate;
+        eventEntity.Location = request.Location.Trim();
+        eventEntity.DistanceKM = request.DistanceKM;
+        eventEntity.EventType = request.EventType.Value;
+        eventEntity.RegistrationDeadline = request.RegistrationDeadline;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(ToResponse(eventEntity));
+    }
+
     private int? GetAuthenticatedUserID()
     {
         var userIDClaim = User?.FindFirstValue("UserID");
