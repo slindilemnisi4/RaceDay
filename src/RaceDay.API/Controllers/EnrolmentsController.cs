@@ -20,6 +20,80 @@ public sealed class EnrolmentsController : ControllerBase
         this.dbContext = dbContext;
     }
 
+    [HttpPost("~/api/events/{eventID:int}/enrolments")]
+    [Authorize(Roles = nameof(UserRole.Participant))]
+    [ProducesResponseType(typeof(EnrolmentResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<EnrolmentResponse>> Create(
+        int eventID,
+        CreateEnrolmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userID = GetAuthenticatedUserID();
+        if (userID is null)
+        {
+            return Unauthorized();
+        }
+
+        var category = await dbContext.Categories
+            .Include(categoryItem => categoryItem.Event)
+            .FirstOrDefaultAsync(categoryItem => categoryItem.CategoryID == request.CategoryID, cancellationToken);
+
+        if (category is null || category.Event is null || category.Event.EventID != eventID)
+        {
+            return NotFound();
+        }
+
+        if (category.Event.RegistrationDeadline < DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            return Conflict(new { message = "Registration for this event is closed." });
+        }
+
+        var duplicateExists = await dbContext.Entries
+            .AnyAsync(entry => entry.UserID == userID.Value && entry.CategoryID == request.CategoryID, cancellationToken);
+
+        if (duplicateExists)
+        {
+            return Conflict(new { message = "The participant is already enrolled in this category." });
+        }
+
+        if (category.MaxParticipants.HasValue)
+        {
+            var enrolmentCount = await dbContext.Entries
+                .CountAsync(entry => entry.CategoryID == request.CategoryID, cancellationToken);
+
+            if (enrolmentCount >= category.MaxParticipants.Value)
+            {
+                return Conflict(new { message = "This category is full." });
+            }
+        }
+
+        var entry = new Entry
+        {
+            UserID = userID.Value,
+            CategoryID = category.CategoryID,
+            EntryDate = DateTime.UtcNow
+        };
+
+        dbContext.Entries.Add(entry);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var response = new EnrolmentResponse
+        {
+            EntryID = entry.EntryID,
+            EventID = category.EventID,
+            EventName = category.Event.EventName,
+            CategoryID = category.CategoryID,
+            CategoryName = category.CategoryName,
+            EntryDate = entry.EntryDate
+        };
+
+        return Created($"/api/events/{eventID}/enrolments/{entry.EntryID}", response);
+    }
+
     [HttpGet("me")]
     [Authorize(Roles = nameof(UserRole.Participant))]
     [ProducesResponseType(typeof(IReadOnlyList<EnrolmentResponse>), StatusCodes.Status200OK)]
