@@ -134,6 +134,49 @@ public sealed class EventUpdateTests
             new object[] { new UpdateEventRequest { EventName = "Valid", Description = "Valid", EventDate = new DateOnly(2026, 5, 1), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 10) } }
         };
 
+    [Theory]
+    [MemberData(nameof(InvalidUpdateRequests))]
+    public async Task AllInvalidUpdateFieldsAreRejected(UpdateEventRequest request)
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+        var eventEntity = fixture.AddEvent();
+
+        var result = await fixture.Controller.Update(
+            eventEntity.EventID,
+            request,
+            CancellationToken.None);
+
+        Assert.IsType<ObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task ValidUpdateRequestRemainsAccepted()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+        var eventEntity = fixture.AddEvent();
+
+        var result = await fixture.Controller.Update(
+            eventEntity.EventID,
+            fixture.ValidRequest(),
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+    }
+
+    public static IEnumerable<object[]> InvalidUpdateRequests() =>
+        new[]
+        {
+            new object[] { new UpdateEventRequest { EventName = "", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "Description", EventDate = default, Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 0, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = -1, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = null, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = (EventTypeOption)99, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new UpdateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 11) } }
+        };
+
     private sealed class TestFixture : IAsyncDisposable
     {
         private TestFixture(RaceDayDbContext dbContext, EventsController controller, User user)

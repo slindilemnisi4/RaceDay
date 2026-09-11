@@ -111,6 +111,43 @@ public sealed class EventCreationTests
         Assert.IsType<ObjectResult>(result.Result);
     }
 
+    [Theory]
+    [MemberData(nameof(InvalidCreateRequests))]
+    public async Task InvalidCreateRequestIsRejected(CreateEventRequest request)
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+
+        var result = await fixture.Controller.Create(request, CancellationToken.None);
+
+        Assert.IsType<ObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task ValidCreateRequestRemainsAccepted()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+
+        var result = await fixture.Controller.Create(fixture.ValidRequest(), CancellationToken.None);
+
+        Assert.IsType<CreatedResult>(result.Result);
+    }
+
+    public static IEnumerable<object[]> InvalidCreateRequests() =>
+        new[]
+        {
+            new object[] { new CreateEventRequest { EventName = "", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "   ", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = default, Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = default } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 0, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = -1, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = null, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = (EventTypeOption)99, RegistrationDeadline = new DateOnly(2026, 5, 1) } },
+            new object[] { new CreateEventRequest { EventName = "Name", Description = "Description", EventDate = new DateOnly(2026, 5, 10), Location = "Park", DistanceKM = 10, EventType = EventTypeOption.Run, RegistrationDeadline = new DateOnly(2026, 5, 11) } }
+        };
+
     [Fact]
     public void RequestAndResponseDoNotExposeClientControlledOrganizerIDOrSensitiveFields()
     {
