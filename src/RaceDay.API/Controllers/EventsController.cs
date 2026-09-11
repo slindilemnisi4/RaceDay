@@ -177,6 +177,54 @@ public sealed class EventsController : ControllerBase
         return Ok(ToResponse(eventEntity));
     }
 
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = nameof(UserRole.Organiser))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var organizerID = GetAuthenticatedUserID();
+        if (organizerID is null)
+        {
+            return Unauthorized();
+        }
+
+        var eventEntity = await dbContext.Events
+            .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
+
+        if (eventEntity is null)
+        {
+            return NotFound();
+        }
+
+        // Check stored ownership before deletion. The route ID selects the
+        // event, while the validated JWT identity decides whether it is owned.
+        if (eventEntity.OrganizerID != organizerID.Value)
+        {
+            return Forbid();
+        }
+
+        dbContext.Events.Remove(eventEntity);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Existing relationships use restricted deletes. Preserve that
+            // design and report a conflict when dependent records exist.
+            return Conflict(new { message = "The event cannot be deleted while related records exist." });
+        }
+
+        return NoContent();
+    }
+
     private int? GetAuthenticatedUserID()
     {
         var userIDClaim = User?.FindFirstValue("UserID");
