@@ -1,0 +1,121 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RaceDay.API.Data;
+using RaceDay.API.DTOs;
+using RaceDay.API.Models;
+
+namespace RaceDay.API.Controllers;
+
+[ApiController]
+[Route("api/enrolments")]
+[Authorize]
+public sealed class EnrolmentsController : ControllerBase
+{
+    private readonly RaceDayDbContext dbContext;
+
+    public EnrolmentsController(RaceDayDbContext dbContext)
+    {
+        this.dbContext = dbContext;
+    }
+
+    [HttpGet("me")]
+    [Authorize(Roles = nameof(UserRole.Participant))]
+    [ProducesResponseType(typeof(IReadOnlyList<EnrolmentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<EnrolmentResponse>>> GetMine(
+        CancellationToken cancellationToken)
+    {
+        var userID = GetAuthenticatedUserID();
+        if (userID is null)
+        {
+            return Unauthorized();
+        }
+
+        // UserID comes only from the validated JWT, so the request cannot select
+        // another participant's enrolments through a route or query parameter.
+        var enrolments = await dbContext.Entries
+            .AsNoTracking()
+            .Where(entry => entry.UserID == userID.Value)
+            .Select(entry => new EnrolmentResponse
+            {
+                EntryID = entry.EntryID,
+                EventID = entry.Category.EventID,
+                EventName = entry.Category.Event.EventName,
+                CategoryID = entry.CategoryID,
+                CategoryName = entry.Category.CategoryName,
+                EntryDate = entry.EntryDate
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(enrolments);
+    }
+
+    [HttpGet("~/api/events/{eventID:int}/enrolments")]
+    [Authorize(Roles = nameof(UserRole.Organiser))]
+    [ProducesResponseType(typeof(IReadOnlyList<EnrolmentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<EnrolmentResponse>>> GetForEvent(
+        int eventID,
+        CancellationToken cancellationToken)
+    {
+        var organizerID = GetAuthenticatedUserID();
+        if (organizerID is null)
+        {
+            return Unauthorized();
+        }
+
+        var eventEntity = await dbContext.Events
+            .AsNoTracking()
+            .FirstOrDefaultAsync(eventItem => eventItem.EventID == eventID, cancellationToken);
+
+        if (eventEntity is null)
+        {
+            return NotFound();
+        }
+
+        // Entries do not store EventID. Ownership is checked on the Event first,
+        // then enrolments are filtered through Entry -> Category -> Event.
+        if (eventEntity.OrganizerID != organizerID.Value)
+        {
+            return Forbid();
+        }
+
+        var enrolments = await dbContext.Entries
+            .AsNoTracking()
+            .Where(entry => entry.Category.EventID == eventID)
+            .Select(entry => new EnrolmentResponse
+            {
+                EntryID = entry.EntryID,
+                EventID = entry.Category.EventID,
+                EventName = entry.Category.Event.EventName,
+                CategoryID = entry.CategoryID,
+                CategoryName = entry.Category.CategoryName,
+                EntryDate = entry.EntryDate
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(enrolments);
+    }
+
+    private int? GetAuthenticatedUserID()
+    {
+        var userIDClaim = User?.FindFirstValue("UserID");
+        return int.TryParse(userIDClaim, out var userID) && userID > 0
+            ? userID
+            : null;
+    }
+
+    private static EnrolmentResponse ToResponse(Entry entry) => new()
+    {
+        EntryID = entry.EntryID,
+        EventID = entry.Category.EventID,
+        EventName = entry.Category.Event.EventName,
+        CategoryID = entry.CategoryID,
+        CategoryName = entry.Category.CategoryName,
+        EntryDate = entry.EntryDate
+    };
+}
