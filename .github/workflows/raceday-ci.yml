@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Validate required repository structure
         shell: bash
@@ -49,7 +49,6 @@ jobs:
             ".gitignore"
           )
 
-          # Check directories
           for directory in "${required_directories[@]}"; do
             if [[ ! -d "$directory" ]]; then
               echo "::error::Required directory is missing: $directory"
@@ -57,7 +56,6 @@ jobs:
             fi
           done
 
-          # Check files (strict case-sensitive)
           for file in "${required_files[@]}"; do
             if [[ ! -f "$file" ]]; then
               echo "::error::Required file is missing: $file"
@@ -65,10 +63,8 @@ jobs:
             fi
           done
 
-          # Optional: Case-insensitive warning (helps developers)
           echo "::notice::Repository structure validation passed successfully."
 
-      # Optional: Propagate a result for downstream jobs
       - name: Set validation output
         id: set-result
-        run: echo "status=passed" >> $GITHUB_OUTPUT
+        run: echo "status=passed" >> "$GITHUB_OUTPUT"

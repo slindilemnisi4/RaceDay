@@ -82,3 +82,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Exposes the application entry point to integration tests.
+public partial class Program
+{
+}
