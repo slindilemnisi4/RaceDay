@@ -1,39 +1,79 @@
+# Workflow name — appears in the Actions tab and in status checks.
 name: RaceDay CI
 
+# ---------------------------------------------------------------------------
+# Triggers: when should this workflow run?
+# ---------------------------------------------------------------------------
 on:
+  # Run on every push to these long-lived branches...
   push:
     branches:
       - main
       - develop
+    # ...unless the push only touches docs/markdown, in which case
+    # running the build would be pointless. Note: `paths-ignore` means
+    # "skip only if ALL changed files match these patterns".
     paths-ignore:
       - '**.md'
       - 'docs/**'
+
+  # Also run on pull requests against any branch.
   pull_request:
+    # `opened`          - PR just created
+    # `synchronize`     - new commits pushed to the PR branch
+    # `reopened`        - a previously closed PR was reopened
+    # (Omitting `ready_for_review` etc. keeps this list intentional and minimal.)
     types: [opened, synchronize, reopened]
     paths-ignore:
       - '**.md'
       - 'docs/**'
 
+# ---------------------------------------------------------------------------
+# Concurrency: prevent overlapping runs for the same branch/PR.
+# ---------------------------------------------------------------------------
 concurrency:
+  # One group per workflow + git ref (branch or PR). A new run on the same
+  # ref will cancel an in-flight run rather than queue behind it.
   group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel the older run when a newer one starts — avoids wasting CI minutes
+  # on a commit that's already been superseded by a fresh push.
   cancel-in-progress: true
 
+# ---------------------------------------------------------------------------
+# Jobs
+# ---------------------------------------------------------------------------
 jobs:
+  # Guard job that verifies the repo has the expected layout before other
+  # (more expensive) jobs run. Fails fast if something critical is missing.
   validate-repository-structure:
+    # Standard GitHub-hosted Linux runner. Deterministic and cheap.
     runs-on: ubuntu-latest
+
+    # Hard cap so a hung step can't burn the default 360-minute budget.
     timeout-minutes: 5
+
+    # Least-privilege: this job only reads the repo, so don't grant write.
     permissions:
       contents: read
 
     steps:
+      # Pin the action to a specific version (v4.2.2) instead of a moving tag
+      # (v4) for reproducibility and supply-chain safety.
       - name: Check out repository
         uses: actions/checkout@v4.2.2
 
+      # Walk the repo and assert every expected directory and file exists.
+      # Uses `::error::` so failures surface nicely in the GitHub UI.
       - name: Validate required repository structure
         shell: bash
         run: |
+          # -e: exit on any error
+          # -u: treat unset variables as errors
+          # -o pipefail: a failure anywhere in a pipe fails the step
+          # (Together: fail loudly instead of silently succeeding.)
           set -euo pipefail
 
+          # Directories that must exist for the project to build/run correctly.
           required_directories=(
             "docs"
             "src"
@@ -41,6 +81,7 @@ jobs:
             ".github/workflows"
           )
 
+          # Individual files that must exist (design docs, schema, etc.).
           required_files=(
             "docs/RaceDay_ERD.png"
             "docs/RaceDay_API_Endpoint_Plan.md"
@@ -49,6 +90,7 @@ jobs:
             ".gitignore"
           )
 
+          # Check every required directory is present.
           for directory in "${required_directories[@]}"; do
             if [[ ! -d "$directory" ]]; then
               echo "::error::Required directory is missing: $directory"
@@ -56,6 +98,7 @@ jobs:
             fi
           done
 
+          # Check every required file is present.
           for file in "${required_files[@]}"; do
             if [[ ! -f "$file" ]]; then
               echo "::error::Required file is missing: $file"
@@ -63,8 +106,13 @@ jobs:
             fi
           done
 
+          # All checks passed — emit an info annotation for visibility.
           echo "::notice::Repository structure validation passed successfully."
 
+      # Publish a job output that downstream jobs can consume via
+      # `needs.validate-repository-structure.outputs.status`.
       - name: Set validation output
         id: set-result
+        # `$GITHUB_OUTPUT` is the modern (non-deprecated) way to set a step
+        # output. The `>>` appends so multiple outputs can share the file.
         run: echo "status=passed" >> "$GITHUB_OUTPUT"
