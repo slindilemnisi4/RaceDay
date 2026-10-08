@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using RaceDay.API.Data;
 using RaceDay.API.Services;
 
@@ -60,7 +61,25 @@ builder.Services.AddOpenApi();
 // Register the Swagger generator and API explorer so the OpenAPI document can
 // also be viewed and tested through Swagger UI during local development.
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "RaceDay API",
+        Version = "v1",
+        Description = "REST API for RaceDay event registration, results, and organizer/participant workflows."
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT bearer token used to authenticate requests. Enter the token as: Bearer {your JWT}"
+    });
+});
 
 var app = builder.Build();
 
