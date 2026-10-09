@@ -45,15 +45,18 @@ RaceDay/
 |   |-- RaceDay_ERD.png
 |   `-- RaceDay_API_Endpoint_Plan.md
 |-- src/
-|   `-- RaceDay_Database.sql
+|   |-- RaceDay.API/
+|   `-- RaceDay.Web/
 |-- tests/
+|   `-- RaceDay.Tests/
+|-- RaceDay_Database.sql
 |-- .github/workflows/
 |   `-- raceday-ci.yml
 |-- README.md
 `-- .gitignore
 ```
 
-The `docs` directory contains the approved Part 1 planning documentation. The SQL Server database script is currently stored in `src`.
+The `docs` directory contains the approved Part 1 planning documentation. Part 2's API is under `src/RaceDay.API`, and Part 3's MVC foundation is under `src/RaceDay.Web`. The Part 1 database script is at the repository root.
 
 ## Technology
 
@@ -119,4 +122,20 @@ The successful GitHub Actions build screenshot will be added here after the work
 
 Part 1 - System Planning and Database has been completed and verified.
 
-Part 2 will focus on implementing the planned RESTful API.
+Part 2 implements the RaceDay REST API. Part 3 Objective 1 establishes the ASP.NET Core MVC application foundation.
+
+### Run the API and MVC application locally
+
+The API and MVC app are separate projects. Start the API in one terminal:
+
+```powershell
+dotnet run --project .\src\RaceDay.API\RaceDay.API.csproj --launch-profile http
+```
+
+Then start the MVC app in another terminal:
+
+```powershell
+dotnet run --project .\src\RaceDay.Web\RaceDay.Web.csproj --launch-profile http
+```
+
+The API listens at `http://localhost:5250` and the MVC app at `http://localhost:5265`. The MVC app reads the development API address from `src/RaceDay.Web/appsettings.Development.json` (`Api:BaseUrl`). Set the `Api__BaseUrl` environment variable to an absolute HTTP or HTTPS URL when using a different API address or environment. The initial landing page does not call the API; API client methods are in place for later objectives.

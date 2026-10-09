@@ -1,0 +1,24 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RaceDay</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="site-header" aria-label="Main navigation">
+            <a class="site-header__brand" asp-controller="Home" asp-action="Index">RaceDay</a>
+        </nav>
+    </header>
+    <main class="page-content">
+        @RenderBody()
+    </main>
+    <footer class="site-footer">
+        <p>RaceDay</p>
+    </footer>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
