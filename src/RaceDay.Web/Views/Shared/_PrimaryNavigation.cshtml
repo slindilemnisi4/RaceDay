@@ -1,0 +1,39 @@
+@model RaceDay.Web.Models.Navigation.PrimaryNavigationViewModel
+
+@if (Model.Items.Count > 0)
+{
+    <aside class="primary-navigation">
+        <nav aria-label="@Model.Label">
+            <ul class="primary-navigation__list">
+                @foreach (var item in Model.Items)
+                {
+                    var isActive = item.IsImplemented
+                        && string.Equals(item.Controller, Model.CurrentController, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(item.Action, Model.CurrentAction, StringComparison.OrdinalIgnoreCase);
+
+                    <li class="primary-navigation__item">
+                        @if (item.IsImplemented)
+                        {
+                            <a class="primary-navigation__link @(isActive ? "is-active" : null)"
+                               asp-controller="@item.Controller"
+                               asp-action="@item.Action"
+                               aria-current="@(isActive ? "page" : null)">
+                                <partial name="_NavigationIcon" model="item.Icon" />
+                                <span class="primary-navigation__label">@item.Label</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="primary-navigation__link primary-navigation__link--disabled"
+                                  aria-disabled="true">
+                                <partial name="_NavigationIcon" model="item.Icon" />
+                                <span class="primary-navigation__label">@item.Label</span>
+                                <span class="primary-navigation__status">Coming soon</span>
+                            </span>
+                        }
+                    </li>
+                }
+            </ul>
+        </nav>
+    </aside>
+}

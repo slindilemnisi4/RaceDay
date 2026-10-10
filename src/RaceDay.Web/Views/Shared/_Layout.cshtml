@@ -1,4 +1,21 @@
-﻿<!DOCTYPE html>
+﻿@using RaceDay.Web.Models.Navigation
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var primaryNavigation = PrimaryNavigationViewModel.Create(
+        User,
+        currentController,
+        currentAction);
+    var isAnonymous = User.Identity?.IsAuthenticated != true;
+    var isAnonymousHomePage = isAnonymous
+        && string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(currentAction, "Index", StringComparison.OrdinalIgnoreCase);
+    var isLoginPage = string.Equals(currentController, "Account", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(currentAction, "Login", StringComparison.OrdinalIgnoreCase);
+    var isRegisterPage = string.Equals(currentController, "Account", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(currentAction, "Register", StringComparison.OrdinalIgnoreCase);
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -8,16 +25,37 @@
 </head>
 <body>
     <header>
-        <nav class="site-header" aria-label="Main navigation">
-            <a class="site-header__brand" asp-controller="Home" asp-action="Index">RaceDay</a>
-        </nav>
+        <div class="site-header">
+            <a class="site-header__brand @(isAnonymousHomePage ? "is-active" : null)"
+               asp-controller="Home"
+               asp-action="Index"
+               aria-current="@(isAnonymousHomePage ? "page" : null)">RaceDay</a>
+            @if (isAnonymous)
+            {
+                <nav class="site-header__account-links" aria-label="Account">
+                    <a class="site-header__account-link @(isLoginPage ? "is-active" : null)"
+                       asp-controller="Account"
+                       asp-action="Login"
+                       aria-current="@(isLoginPage ? "page" : null)">Sign in</a>
+                    <a class="site-header__account-link site-header__account-link--register @(isRegisterPage ? "is-active" : null)"
+                       asp-controller="Account"
+                       asp-action="Register"
+                       aria-current="@(isRegisterPage ? "page" : null)">Register</a>
+                </nav>
+            }
+        </div>
     </header>
-    <main class="page-content">
-        @RenderBody()
-    </main>
-    <footer class="site-footer">
-        <p>RaceDay</p>
-    </footer>
+    <div class="app-shell">
+        <partial name="_PrimaryNavigation" model="primaryNavigation" />
+        <div class="app-shell__content">
+            <main class="page-content">
+                @RenderBody()
+            </main>
+            <footer class="site-footer">
+                <p>RaceDay</p>
+            </footer>
+        </div>
+    </div>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
