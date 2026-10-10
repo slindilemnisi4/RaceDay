@@ -1,0 +1,38 @@
+@model RaceDay.Web.Models.Account.LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+}
+
+<section class="account-card" aria-labelledby="login-heading">
+    <p class="account-card__eyebrow">Welcome back</p>
+    <h1 id="login-heading">Sign in to RaceDay</h1>
+
+    @if (ViewData["AccountMessage"] is string accountMessage)
+    {
+        <div class="account-message" role="status">@accountMessage</div>
+    }
+    @if (ViewData["ApiMessage"] is string message)
+    {
+        <div class="account-message" role="alert">@message</div>
+    }
+
+    <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+
+    <form asp-action="Login" method="post" class="account-form">
+        <div class="form-field">
+            <label asp-for="Email"></label>
+            <input asp-for="Email" type="email" autocomplete="email" />
+            <span asp-validation-for="Email" class="field-error"></span>
+        </div>
+        <div class="form-field">
+            <label asp-for="Password"></label>
+            <input asp-for="Password" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="field-error"></span>
+        </div>
+        <button class="account-button" type="submit">Sign in</button>
+    </form>
+
+    <p class="account-card__footnote">
+        New to RaceDay? <a asp-action="Register">Create an account</a>
+    </p>
+</section>
