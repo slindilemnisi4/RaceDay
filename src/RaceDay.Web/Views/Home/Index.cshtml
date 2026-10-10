@@ -1,9 +1,78 @@
-﻿@{
-    ViewData["Title"] = "RaceDay Web";
+﻿@model RaceDay.Web.Models.Events.EventDiscoveryViewModel
+@{
+    ViewData["Title"] = Model.State == RaceDay.Web.Models.Events.EventDiscoveryState.PublicLanding
+        ? "RaceDay Web"
+        : "Discover events";
 }
 
-<section class="welcome" aria-labelledby="welcome-heading">
-    <p class="welcome__eyebrow">RaceDay</p>
-    <h1 id="welcome-heading">Your RaceDay web application is running.</h1>
-    <p>This ASP.NET Core MVC application is ready for the next development objectives.</p>
-</div>
+@if (Model.State == RaceDay.Web.Models.Events.EventDiscoveryState.PublicLanding)
+{
+    <section class="welcome" aria-labelledby="welcome-heading">
+        <p class="welcome__eyebrow">RaceDay</p>
+        <h1 id="welcome-heading">Your RaceDay web application is running.</h1>
+        <p>Sign in to discover upcoming races and events.</p>
+    </section>
+}
+else
+{
+    <section class="event-discovery" aria-labelledby="events-heading">
+        <header class="event-discovery__header">
+            <p class="welcome__eyebrow">RaceDay</p>
+            <h1 id="events-heading">Discover events</h1>
+            <p>Explore races and events from the RaceDay community.</p>
+        </header>
+
+        @if (Model.State == RaceDay.Web.Models.Events.EventDiscoveryState.Failure)
+        {
+            <section class="event-state event-state--error" role="alert">
+                <h2>@(Model.Message is null ? "Events are temporarily unavailable" : "Access to events denied")</h2>
+                <p>@(Model.Message ?? "We couldn't load events right now. Please try again.")</p>
+                <a class="event-retry" asp-controller="Home" asp-action="Index">Retry</a>
+            </section>
+        }
+        else if (Model.State == RaceDay.Web.Models.Events.EventDiscoveryState.Empty)
+        {
+            <section class="event-state" aria-live="polite">
+                <h2>No events yet</h2>
+                <p>There are no events to show right now. Please check back later.</p>
+            </section>
+        }
+        else
+        {
+            <div class="event-grid">
+                @foreach (var eventItem in Model.Events)
+                {
+                    <article class="event-card">
+                        <div class="event-card__heading">
+                            <span class="event-card__type">@eventItem.EventTypeLabel</span>
+                            <h2>@eventItem.EventName</h2>
+                        </div>
+                        <p class="event-card__description">
+                            @(string.IsNullOrWhiteSpace(eventItem.Description)
+                                ? "No description provided."
+                                : eventItem.Description)
+                        </p>
+                        <dl class="event-card__details">
+                            <div>
+                                <dt>Date</dt>
+                                <dd>@eventItem.EventDate.ToString("D")</dd>
+                            </div>
+                            <div>
+                                <dt>Location</dt>
+                                <dd>@eventItem.Location</dd>
+                            </div>
+                            <div>
+                                <dt>Distance</dt>
+                                <dd>@eventItem.DistanceKM.ToString("0.##") km</dd>
+                            </div>
+                            <div>
+                                <dt>Registration deadline</dt>
+                                <dd>@eventItem.RegistrationDeadline.ToString("D")</dd>
+                            </div>
+                        </dl>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+}
