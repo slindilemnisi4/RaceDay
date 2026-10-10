@@ -19,6 +19,7 @@
     <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
 
     <form asp-action="Login" method="post" class="account-form">
+        <input asp-for="ReturnUrl" type="hidden" />
         <div class="form-field">
             <label asp-for="Email"></label>
             <input asp-for="Email" type="email" autocomplete="email" />

@@ -1,7 +1,27 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using RaceDay.Web.Filters;
 using RaceDay.Web.Services;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var apiProjectDirectory = Path.GetFullPath(
+    Path.Combine(builder.Environment.ContentRootPath, "..", "RaceDay.API"));
+var apiJwtConfigurationBuilder = new ConfigurationBuilder();
+if (Directory.Exists(apiProjectDirectory))
+{
+    apiJwtConfigurationBuilder
+        .SetBasePath(apiProjectDirectory)
+        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+        .AddJsonFile(
+            $"appsettings.{builder.Environment.EnvironmentName}.json",
+            optional: true,
+            reloadOnChange: false);
+}
+
+var apiJwtConfiguration = apiJwtConfigurationBuilder
+    .AddEnvironmentVariables()
+    .Build();
 
 var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
 if (!Uri.TryCreate(apiBaseUrl, UriKind.Absolute, out var apiBaseAddress)
@@ -12,7 +32,12 @@ if (!Uri.TryCreate(apiBaseUrl, UriKind.Absolute, out var apiBaseAddress)
         "Configure Api:BaseUrl with an absolute HTTP or HTTPS URL before starting RaceDay.Web.");
 }
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.AddService<ApiAuthenticationRedirectFilter>();
+});
+builder.Services.AddScoped<ApiAuthenticationRedirectFilter>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -38,6 +63,8 @@ builder.Services
         options.AccessDeniedPath = "/Account/AccessDenied";
     });
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<ApiAuthenticationSession>();
+builder.Services.AddSingleton(new ApiJwtTokenValidator(apiJwtConfiguration));
 builder.Services.AddAntiforgery(options =>
 {
     options.Cookie.Name = ".RaceDay.Web.Antiforgery";
