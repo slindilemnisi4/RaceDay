@@ -80,8 +80,12 @@ body {
 .app-shell {
     min-height: calc(100vh - 4rem);
     display: grid;
-    grid-template-columns: 15.5rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     flex: 1;
+}
+
+.app-shell--with-navigation {
+    grid-template-columns: 15.5rem minmax(0, 1fr);
 }
 
 .primary-navigation {
@@ -142,6 +146,11 @@ a.primary-navigation__link.is-active {
     stroke-width: 1.7;
 }
 
+.primary-navigation__label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .primary-navigation__link--disabled {
     flex-wrap: wrap;
     color: #778880;
@@ -149,11 +158,16 @@ a.primary-navigation__link.is-active {
 }
 
 .primary-navigation__status {
-    width: 100%;
+    width: calc(100% - 2.2rem);
     margin: -0.55rem 0 0 2.2rem;
     color: #63756d;
     font-size: 0.68rem;
     font-weight: 400;
+}
+
+.account-card,
+.account-message {
+    overflow-wrap: anywhere;
 }
 
 .app-shell__content {
@@ -382,14 +396,14 @@ a.primary-navigation__link.is-active {
     }
 
     .primary-navigation__label {
-        max-width: 100%;
-        font-size: clamp(0.58rem, 2.7vw, 0.72rem);
+        min-width: 0;
         overflow-wrap: anywhere;
     }
 
     .primary-navigation__status {
         width: auto;
         margin: 0;
+        max-width: 100%;
         font-size: 0.55rem;
     }
 

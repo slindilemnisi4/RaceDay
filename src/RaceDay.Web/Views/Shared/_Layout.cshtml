@@ -45,7 +45,7 @@
             }
         </div>
     </header>
-    <div class="app-shell">
+    <div class="app-shell @(primaryNavigation.Items.Count > 0 ? "app-shell--with-navigation" : null)">
         <partial name="_PrimaryNavigation" model="primaryNavigation" />
         <div class="app-shell__content">
             <main class="page-content">
