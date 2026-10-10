@@ -1,0 +1,15 @@
+@{
+    ViewData["Title"] = "Access denied";
+}
+
+<section class="account-card" aria-labelledby="access-denied-heading">
+    <p class="account-card__eyebrow">Restricted area</p>
+    <h1 id="access-denied-heading">Access denied</h1>
+    <p class="account-card__intro">
+        You do not have permission to access this page. If you think this is a mistake,
+        return to RaceDay Home and try again.
+    </p>
+    <p class="account-card__footnote">
+        <a asp-controller="Home" asp-action="Index">Return to Home</a>
+    </p>
+</section>
