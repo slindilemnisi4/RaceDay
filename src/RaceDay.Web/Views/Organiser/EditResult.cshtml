@@ -1,0 +1,13 @@
+@model RaceDay.Web.Models.Organiser.OrganiserResultFormViewModel
+@{
+    ViewData["Title"] = "Edit result";
+    ViewData["FormAction"] = "EditResult";
+}
+<section class="participant-page" aria-labelledby="page-heading">
+    <header class="participant-page__header">
+        <p class="welcome__eyebrow">Organiser</p>
+        <h1 id="page-heading">Edit result</h1>
+        <p>Entry #@Model.EntryID</p>
+    </header>
+    <partial name="_ResultForm" model="Model" />
+</section>

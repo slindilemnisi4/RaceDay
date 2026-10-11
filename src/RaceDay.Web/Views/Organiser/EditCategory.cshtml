@@ -1,0 +1,12 @@
+@model RaceDay.Web.Models.Organiser.OrganiserCategoryFormViewModel
+@{
+    ViewData["Title"] = "Edit category";
+    ViewData["FormAction"] = "EditCategory";
+}
+<section class="participant-page" aria-labelledby="page-heading">
+    <header class="participant-page__header">
+        <p class="welcome__eyebrow">Organiser</p>
+        <h1 id="page-heading">Edit category</h1>
+    </header>
+    <partial name="_CategoryForm" model="Model" />
+</section>

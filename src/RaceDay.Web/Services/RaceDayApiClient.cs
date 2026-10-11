@@ -37,6 +37,19 @@ public sealed class RaceDayApiClient(
             cancellationToken);
     }
 
+    public Task<RaceDayApiResponse<TResponse>> DeleteAuthenticatedAsync<TResponse>(
+        string requestUri,
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<object, TResponse>(
+            HttpMethod.Delete,
+            requestUri,
+            request: null,
+            authenticationSession.GetAccessToken(),
+            requiresAuthentication: true,
+            cancellationToken);
+    }
+
     public async Task<RaceDayApiResponse> PostAsync<TRequest>(
         string requestUri,
         TRequest request,

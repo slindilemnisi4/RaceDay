@@ -1,0 +1,94 @@
+@model RaceDay.Web.Models.Organiser.OrganiserResultsPageViewModel
+@{
+    ViewData["Title"] = "Enrolments and results";
+}
+<section class="participant-page" aria-labelledby="page-heading">
+    <header class="participant-page__header">
+        <p class="welcome__eyebrow">Organiser</p>
+        <h1 id="page-heading">Enrolments &amp; Results</h1>
+        <p>Choose one of your events to view its participant entries and recorded results.</p>
+    </header>
+    @if (TempData["OrganiserMessage"] is string message)
+    {
+        <p class="event-state" role="status">@message</p>
+    }
+    @if (Model.Message is not null)
+    {
+        <p class="event-state @(Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Failure ? "event-state--error" : null)" role="@(Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Failure ? "alert" : "status")">@Model.Message</p>
+    }
+    @if (Model.Events.Count > 0)
+    {
+        <form asp-action="Enrolments" method="get" class="form-field">
+            <label for="eventID">Event</label>
+            <select id="eventID" name="eventID" onchange="this.form.submit()">
+                <option value="">Select an event</option>
+                @foreach (var item in Model.Events)
+                {
+                    <option value="@item.EventID" selected="@(Model.SelectedEventID == item.EventID)">@item.EventName</option>
+                }
+            </select>
+        </form>
+    }
+    @if (Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Empty && Model.SelectedEventID is null)
+    {
+        <section class="event-state">
+            <h2>No events to show</h2>
+            <p>Create an event before managing enrolments and results.</p>
+        </section>
+    }
+    @if (Model.SelectedEventID is int selectedEventID && Model.State != RaceDay.Web.Models.Organiser.OrganiserPageState.Failure)
+    {
+        <section class="participant-page">
+            <h2>Enrolments</h2>
+            @if (Model.Enrolments.Count == 0)
+            {
+                <p class="event-state">There are no enrolments for this event yet.</p>
+            }
+            else
+            {
+                <div class="participant-card-grid">
+                    @foreach (var entry in Model.Enrolments)
+                    {
+                        var hasResult = Model.ResultIdsByEntry.TryGetValue(entry.EntryID, out var resultID);
+                        <article class="participant-card">
+                            <h3>Entry #@entry.EntryID</h3>
+                            <p>Category: @entry.CategoryName</p>
+                            <p>Enrolled: @entry.EntryDate.ToString("D")</p>
+                            @if (hasResult)
+                            {
+                                <a class="event-retry" asp-action="EditResult" asp-route-eventID="@selectedEventID" asp-route-resultID="@resultID">Edit result</a>
+                            }
+                            else
+                            {
+                                <a class="event-retry" asp-action="CreateResult" asp-route-eventID="@selectedEventID" asp-route-entryID="@entry.EntryID">Record result</a>
+                            }
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+        <section class="participant-page">
+            <h2>Results</h2>
+            @if (Model.Results.Count == 0)
+            {
+                <p class="event-state">No results have been recorded yet.</p>
+            }
+            else
+            {
+                <div class="participant-card-grid">
+                    @foreach (var result in Model.Results)
+                    {
+                        <article class="participant-card">
+                            <h3>@result.EventName</h3>
+                            <p>Category: @result.CategoryName</p>
+                            <p>Finish time: @result.FinishTime</p>
+                            <p>Overall position: @result.OverallPosition</p>
+                            <p>Category position: @result.CategoryPosition</p>
+                            <p>Status: @result.ResultStatusLabel</p>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+</section>

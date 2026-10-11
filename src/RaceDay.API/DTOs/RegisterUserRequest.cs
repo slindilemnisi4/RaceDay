@@ -20,4 +20,6 @@ public sealed class RegisterUserRequest
 
     [Required]
     public UserRole? Role { get; init; }
+
+    public string? OrganiserRegistrationCode { get; init; }
 }

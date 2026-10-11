@@ -1,0 +1,38 @@
+@model RaceDay.Web.Models.Organiser.OrganiserResultFormViewModel
+@{
+    var formAction = ViewData["FormAction"]?.ToString() ?? "CreateResult";
+}
+<form asp-action="@formAction" asp-route-eventID="@Model.EventID" asp-route-resultID="@Model.ResultID" method="post" class="participant-card">
+    <div asp-validation-summary="ModelOnly" class="event-state event-state--error" role="alert"></div>
+    <input asp-for="EventID" type="hidden" />
+    <input asp-for="EntryID" type="hidden" />
+    <div class="form-field">
+        <label asp-for="FinishTime"></label>
+        <input asp-for="FinishTime" type="time" step="1" />
+        <span asp-validation-for="FinishTime"></span>
+    </div>
+    <div class="form-field">
+        <label asp-for="OverallPosition"></label>
+        <input asp-for="OverallPosition" type="number" min="1" />
+        <span asp-validation-for="OverallPosition"></span>
+    </div>
+    <div class="form-field">
+        <label asp-for="CategoryPosition"></label>
+        <input asp-for="CategoryPosition" type="number" min="1" />
+        <span asp-validation-for="CategoryPosition"></span>
+    </div>
+    <div class="form-field">
+        <label asp-for="ResultStatus"></label>
+        <select asp-for="ResultStatus">
+            <option value="0">Finished</option>
+            <option value="1">Did not finish</option>
+            <option value="2">Did not start</option>
+            <option value="3">Disqualified</option>
+        </select>
+        <span asp-validation-for="ResultStatus"></span>
+    </div>
+    <div class="organiser-actions">
+        <button class="event-retry" type="submit">Save result</button>
+        <a class="event-retry" asp-action="Enrolments" asp-route-eventID="@Model.EventID">Cancel</a>
+    </div>
+</form>

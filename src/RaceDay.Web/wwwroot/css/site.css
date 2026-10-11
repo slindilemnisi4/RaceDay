@@ -287,6 +287,67 @@ a.primary-navigation__link.is-active {
     margin: 0.2rem 0 0;
 }
 
+.event-card__join {
+    margin-top: 1.25rem;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.event-card__join label {
+    color: #31574b;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.event-card__join select {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #b8ccc2;
+    border-radius: 0.35rem;
+    background: #fff;
+    color: #173b30;
+    font: inherit;
+}
+
+.event-join-button {
+    min-height: 2.75rem;
+    padding: 0.65rem 1rem;
+    border: 0;
+    border-radius: 0.35rem;
+    background: #22634f;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.event-join-button:hover {
+    background: #174d3d;
+}
+
+.event-join-button:focus-visible,
+.event-card__join select:focus-visible {
+    outline: 3px solid #6da98d;
+    outline-offset: 2px;
+}
+
+.event-card__join-message,
+.event-notice {
+    margin: 1rem 0 0;
+    padding: 0.9rem 1rem;
+    border: 1px solid #dce7e1;
+    border-radius: 0.45rem;
+    background: #f4f8f5;
+    color: #31574b;
+}
+
+.event-notice--warning {
+    border-color: #e8d7a8;
+    background: #fff9e8;
+    color: #624b12;
+}
+
 .event-state {
     max-width: 42rem;
     margin: 1.5rem auto;
@@ -382,7 +443,37 @@ a.primary-navigation__link.is-active {
     font: inherit;
 }
 
+.form-field textarea {
+    width: 100%;
+    min-height: 7rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #9aada5;
+    border-radius: 0.35rem;
+    color: #18312b;
+    font: inherit;
+    resize: vertical;
+}
+
+.form-field select {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #9aada5;
+    border-radius: 0.35rem;
+    background: #fff;
+    color: #18312b;
+    font: inherit;
+}
+
+.form-help {
+    color: #52685f;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
 .form-field input:focus-visible,
+.form-field textarea:focus-visible,
+.form-field select:focus-visible,
 .account-button:focus-visible,
 .account-card a:focus-visible {
     outline: 3px solid #347765;
@@ -436,6 +527,95 @@ a.primary-navigation__link.is-active {
 .account-card a {
     color: #185c46;
     font-weight: 700;
+}
+
+.participant-page {
+    width: 100%;
+    padding: 2.5rem 0;
+}
+
+.participant-page__header {
+    margin-bottom: 1.75rem;
+}
+
+.participant-page__header h1 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+}
+
+.participant-page__header > p:last-child {
+    color: #4a625b;
+    line-height: 1.6;
+}
+
+.participant-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    gap: 1rem;
+}
+
+.participant-card {
+    min-width: 0;
+    padding: 1.25rem;
+    border: 1px solid #dce7e1;
+    border-radius: 0.65rem;
+    background: #fff;
+    box-shadow: 0 0.4rem 1.25rem rgb(18 60 50 / 5%);
+    overflow-wrap: anywhere;
+}
+
+.participant-card--selected {
+    border-color: #347765;
+    box-shadow: 0 0 0 2px rgb(52 119 101 / 18%), 0 0.4rem 1.25rem rgb(18 60 50 / 5%);
+}
+
+.participant-card h2 {
+    margin: 0.4rem 0 0;
+    font-size: 1.25rem;
+    line-height: 1.3;
+}
+
+.participant-card__heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.profile-card {
+    width: min(100%, 42rem);
+}
+
+.profile-field-label {
+    color: #52685f;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.profile-card .form-field p {
+    margin: 0;
+}
+
+.join-race-form button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.organiser-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.organiser-actions form {
+    margin: 0;
+}
+
+.participant-page > .form-field {
+    width: min(100%, 32rem);
+    margin-bottom: 1rem;
 }
 
 @media (max-width: 700px) {

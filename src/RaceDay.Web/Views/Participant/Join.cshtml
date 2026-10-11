@@ -1,0 +1,93 @@
+@model RaceDay.Web.Models.Participant.JoinRaceViewModel
+@{
+    ViewData["Title"] = "Join Race";
+}
+
+<section class="participant-page" aria-labelledby="page-heading">
+    <header class="participant-page__header">
+        <p class="welcome__eyebrow">Participant</p>
+        <h1 id="page-heading">Join Race</h1>
+        <p>Choose an event category to submit your enrolment.</p>
+    </header>
+
+    @if (TempData["ParticipantMessage"] is string successMessage)
+    {
+        <p class="event-notice" role="status">@successMessage</p>
+    }
+    @if (TempData["ParticipantError"] is string errorMessage)
+    {
+        <p class="event-notice event-notice--warning" role="alert">@errorMessage</p>
+    }
+
+    @if (Model.State == RaceDay.Web.Models.Participant.JoinRacePageState.Failure)
+    {
+        <section class="event-state event-state--error" role="alert">
+            <h2>Events are temporarily unavailable</h2>
+            <p>@Model.Message</p>
+            <a class="event-retry" asp-action="Join">Retry</a>
+        </section>
+    }
+    else if (Model.State == RaceDay.Web.Models.Participant.JoinRacePageState.Empty)
+    {
+        <section class="event-state" aria-live="polite">
+            <h2>No events yet</h2>
+            <p>There are no events available to join right now. Please check back later.</p>
+        </section>
+    }
+    else
+    {
+        <div class="participant-card-grid">
+            @foreach (var eventItem in Model.Events)
+            {
+                <article class="participant-card @(Model.SelectedEventID == eventItem.EventID ? "participant-card--selected" : null)"
+                         id="event-@eventItem.EventID">
+                    <h2>@eventItem.EventName</h2>
+                    @if (Model.SelectedEventID == eventItem.EventID)
+                    {
+                        <p class="event-card__type">Selected event</p>
+                    }
+                    <dl class="event-card__details">
+                        <div>
+                            <dt>Date</dt>
+                            <dd>@eventItem.EventDate.ToString("D")</dd>
+                        </div>
+                        <div>
+                            <dt>Location</dt>
+                            <dd>@eventItem.Location</dd>
+                        </div>
+                    </dl>
+
+                    @if (eventItem.Categories.Count == 0)
+                    {
+                        <p class="event-card__join-message">No categories are available for this event yet.</p>
+                    }
+                    else
+                    {
+                        <form asp-action="Join" method="post" class="event-card__join join-race-form">
+                            <input type="hidden" name="EventID" value="@eventItem.EventID" />
+                            <label for="category-@eventItem.EventID">Choose a category</label>
+                            <select id="category-@eventItem.EventID" name="CategoryID" required>
+                                <option value="" selected disabled>Select a category</option>
+                                @foreach (var category in eventItem.Categories)
+                                {
+                                    var distance = category.DistanceKM is decimal categoryDistance
+                                        ? $" - {categoryDistance:0.##} km"
+                                        : string.Empty;
+                                    var fee = category.EntryFee.ToString("C");
+                                    <option value="@category.CategoryID">
+                                        @category.CategoryName@distance — @fee
+                                    </option>
+                                }
+                            </select>
+                            <button type="submit" class="event-join-button">Join race</button>
+                        </form>
+                    }
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script src="~/js/participant.js" asp-append-version="true"></script>
+}

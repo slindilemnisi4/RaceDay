@@ -1,0 +1,49 @@
+@model RaceDay.Web.Models.Organiser.OrganiserProfileViewModel
+@{
+    ViewData["Title"] = "Organiser profile";
+}
+<section class="participant-page profile-card" aria-labelledby="page-heading">
+    <header class="participant-page__header">
+        <p class="welcome__eyebrow">Organiser</p>
+        <h1 id="page-heading">Your profile</h1>
+        <p>Update the contact details on your RaceDay account.</p>
+    </header>
+    @if (TempData["OrganiserMessage"] is string message)
+    {
+        <p class="event-state" role="status">@message</p>
+    }
+    @if (ViewData["ApiMessage"] is string apiMessage)
+    {
+        <p class="event-state event-state--error" role="alert">@apiMessage</p>
+    }
+    <form asp-action="Profile" method="post" class="participant-card">
+        <div asp-validation-summary="ModelOnly" class="event-state event-state--error" role="alert"></div>
+        <div class="form-field">
+            <label asp-for="FirstName"></label>
+            <input asp-for="FirstName" />
+            <span asp-validation-for="FirstName"></span>
+        </div>
+        <div class="form-field">
+            <label asp-for="LastName"></label>
+            <input asp-for="LastName" />
+            <span asp-validation-for="LastName"></span>
+        </div>
+        <div class="form-field">
+            <label asp-for="Email"></label>
+            <input asp-for="Email" type="email" />
+            <span asp-validation-for="Email"></span>
+        </div>
+        <div class="form-field">
+            <label asp-for="Role"></label>
+            <p>@Model.Role (role cannot be changed here)</p>
+        </div>
+        @if (Model.CreatedAt != default)
+        {
+            <div class="form-field">
+                <label asp-for="CreatedAt"></label>
+                <p>@Model.CreatedAt.ToString("D")</p>
+            </div>
+        }
+        <button class="event-retry" type="submit">Save profile</button>
+    </form>
+</section>

@@ -1,0 +1,82 @@
+@model RaceDay.Web.Models.Organiser.OrganiserEventDetailsViewModel
+@{
+    ViewData["Title"] = "Manage event";
+}
+
+<section class="participant-page" aria-labelledby="page-heading">
+    @if (string.IsNullOrWhiteSpace(Model.Event.EventName))
+    {
+        <section class="event-state event-state--error" role="alert">
+            <h1 id="page-heading">Event details unavailable</h1>
+            <p>@(Model.Message ?? "The event details could not be loaded.")</p>
+            <a class="event-retry" asp-action="MyEvents">Back to My Events</a>
+        </section>
+    }
+    else
+    {
+        <header class="participant-page__header">
+            <p class="welcome__eyebrow">@Model.Event.EventTypeLabel</p>
+            <h1 id="page-heading">@Model.Event.EventName</h1>
+            <p>@Model.Event.Description</p>
+            <a class="event-retry" asp-action="EditEvent" asp-route-id="@Model.Event.EventID">Edit event</a>
+        </header>
+        @if (TempData["OrganiserMessage"] is string message)
+        {
+            <p class="event-state" role="status">@message</p>
+        }
+        @if (TempData["OrganiserError"] is string error)
+        {
+            <p class="event-state event-state--error" role="alert">@error</p>
+        }
+        <dl class="event-card__details">
+            <div><dt>Date</dt><dd>@Model.Event.EventDate.ToString("D")</dd></div>
+            <div><dt>Location</dt><dd>@Model.Event.Location</dd></div>
+            <div><dt>Distance</dt><dd>@Model.Event.DistanceKM.ToString("0.##") km</dd></div>
+            <div><dt>Registration deadline</dt><dd>@Model.Event.RegistrationDeadline.ToString("D")</dd></div>
+        </dl>
+
+        <section class="participant-page">
+            <header class="participant-page__header">
+                <h2>Categories</h2>
+                <a class="event-retry" asp-action="CreateCategory" asp-route-eventID="@Model.Event.EventID">Add category</a>
+            </header>
+            @if (Model.Message is not null)
+            {
+                <p class="event-state event-state--error" role="alert">@Model.Message</p>
+            }
+            else if (Model.Categories.Count == 0)
+            {
+                <p class="event-state">No categories have been added yet.</p>
+            }
+            else
+            {
+                <div class="participant-card-grid">
+                    @foreach (var category in Model.Categories)
+                    {
+                        <article class="participant-card">
+                            <h3>@category.CategoryName</h3>
+                            <p>Distance: @(category.DistanceKM?.ToString("0.##") ?? "Not specified") km</p>
+                            <p>Maximum participants: @(category.MaxParticipants?.ToString() ?? "No limit specified")</p>
+                            <p>Entry fee: @category.EntryFee.ToString("C")</p>
+                            <div class="organiser-actions">
+                                <a class="event-retry" asp-action="EditCategory" asp-route-id="@category.CategoryID">Edit</a>
+                                <form asp-action="DeleteCategory" method="post">
+                                    <input type="hidden" name="id" value="@category.CategoryID" />
+                                    <input type="hidden" name="eventID" value="@Model.Event.EventID" />
+                                    <button class="event-retry" type="submit">Delete category</button>
+                                </form>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+        <section class="participant-page">
+            <h2>Event actions</h2>
+            <a class="event-retry" asp-action="Enrolments" asp-route-eventID="@Model.Event.EventID">View enrolments and results</a>
+            <form asp-action="DeleteEvent" asp-route-id="@Model.Event.EventID" method="post">
+                <button class="event-retry" type="submit">Delete event</button>
+            </form>
+        </section>
+    }
+</section>

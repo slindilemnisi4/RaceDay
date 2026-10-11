@@ -52,6 +52,74 @@ public sealed class AuthenticationTests
     }
 
     [Fact]
+    public async Task Register_OrganiserWithoutRegistrationCode_IsForbidden()
+    {
+        await using var fixture = TestFixture.Create();
+
+        var result = await fixture.Controller.Register(
+            fixture.RegisterRequest(role: UserRole.Organiser),
+            CancellationToken.None);
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        Assert.Empty(await fixture.DbContext.Users.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Register_OrganiserWithInvalidRegistrationCode_IsForbidden()
+    {
+        await using var fixture = TestFixture.Create();
+
+        var result = await fixture.Controller.Register(
+            fixture.RegisterRequest(role: UserRole.Organiser, organiserCode: "incorrect-test-code"),
+            CancellationToken.None);
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        Assert.Empty(await fixture.DbContext.Users.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Register_OrganiserWithConfiguredRegistrationCode_CreatesOrganiser()
+    {
+        await using var fixture = TestFixture.Create();
+
+        var result = await fixture.Controller.Register(
+            fixture.RegisterRequest(role: UserRole.Organiser, organiserCode: TestFixture.OrganiserCode),
+            CancellationToken.None);
+
+        Assert.IsType<CreatedResult>(result.Result);
+        Assert.Equal(UserRole.Organiser, (await fixture.DbContext.Users.SingleAsync()).Role);
+    }
+
+    [Fact]
+    public async Task Register_OrganiserWithAnotherConfiguredRegistrationCode_CreatesOrganiser()
+    {
+        await using var fixture = TestFixture.Create();
+
+        var result = await fixture.Controller.Register(
+            fixture.RegisterRequest(role: UserRole.Organiser, organiserCode: "2059"),
+            CancellationToken.None);
+
+        Assert.IsType<CreatedResult>(result.Result);
+        Assert.Equal(UserRole.Organiser, (await fixture.DbContext.Users.SingleAsync()).Role);
+    }
+
+    [Theory]
+    [InlineData("123")]
+    [InlineData("12345")]
+    [InlineData("12a4")]
+    public async Task Register_OrganiserWithMalformedInvitationCode_IsForbidden(string code)
+    {
+        await using var fixture = TestFixture.Create();
+
+        var result = await fixture.Controller.Register(
+            fixture.RegisterRequest(role: UserRole.Organiser, organiserCode: code),
+            CancellationToken.None);
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        Assert.Empty(await fixture.DbContext.Users.ToListAsync());
+    }
+
+    [Fact]
     public async Task Login_WithValidCredentials_ReturnsOkAndJwtToken()
     {
         await using var fixture = TestFixture.Create();
@@ -146,6 +214,7 @@ public sealed class AuthenticationTests
         public const string SecretKey = "test-only-secret-key-that-is-long-enough-123456789";
         public const string Issuer = "RaceDay.Tests";
         public const string Audience = "RaceDay.Tests.Client";
+        public const string OrganiserCode = "7316";
 
         private TestFixture(
             RaceDayDbContext dbContext,
@@ -175,23 +244,29 @@ public sealed class AuthenticationTests
                     ["Jwt:SecretKey"] = SecretKey,
                     ["Jwt:Issuer"] = Issuer,
                     ["Jwt:Audience"] = Audience,
-                    ["Jwt:ExpirationMinutes"] = "60"
+                    ["Jwt:ExpirationMinutes"] = "60",
+                    ["Registration:OrganiserCodes:0"] = OrganiserCode,
+                    ["Registration:OrganiserCodes:1"] = "2059"
                 })
                 .Build();
             var tokenService = new JwtTokenService(configuration);
             var passwordService = new PasswordHashService();
-            var controller = new AuthController(dbContext, passwordService, tokenService);
+            var controller = new AuthController(dbContext, passwordService, tokenService, configuration);
 
             return new TestFixture(dbContext, controller, tokenService);
         }
 
-        public RegisterUserRequest RegisterRequest(string email = "USER@EXAMPLE.COM") => new()
+        public RegisterUserRequest RegisterRequest(
+            string email = "USER@EXAMPLE.COM",
+            UserRole role = UserRole.Participant,
+            string? organiserCode = null) => new()
         {
             FirstName = "Test",
             LastName = "User",
             Email = email,
             Password = "CorrectHorseBatteryStaple!",
-            Role = UserRole.Participant
+            Role = role,
+            OrganiserRegistrationCode = organiserCode
         };
 
         public JwtSecurityToken ReadToken(string token) =>

@@ -2,6 +2,8 @@ namespace RaceDay.Web.Models.Events;
 
 public sealed class ApiEventResponse
 {
+    public int EventID { get; init; }
+
     public string EventName { get; init; } = string.Empty;
 
     public string Description { get; init; } = string.Empty;

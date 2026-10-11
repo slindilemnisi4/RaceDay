@@ -132,6 +132,79 @@ public sealed class EventCreationTests
         Assert.IsType<CreatedResult>(result.Result);
     }
 
+    [Fact]
+    public async Task GetMine_ReturnsOnlyAuthenticatedOrganisersEventsAndEntryCounts()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+        var otherOrganiser = new User
+        {
+            FirstName = "Other",
+            LastName = "Organiser",
+            Email = "OTHER@EXAMPLE.COM",
+            PasswordHash = "hashed-password",
+            Role = UserRole.Organiser,
+            CreatedAt = DateTime.UtcNow
+        };
+        var ownedEvent = new Event
+        {
+            OrganizerID = fixture.User.UserID,
+            EventName = "Owned event",
+            Description = "Owned",
+            EventDate = new DateOnly(2026, 5, 10),
+            Location = "Park",
+            DistanceKM = 10,
+            EventType = EventTypeOption.Run,
+            RegistrationDeadline = new DateOnly(2026, 5, 1),
+            CreatedAt = DateTime.UtcNow,
+            Categories =
+            [
+                new Category
+                {
+                    CategoryName = "Open",
+                    EntryFee = 0,
+                    Entries =
+                    [
+                        new Entry { UserID = fixture.User.UserID, EntryDate = DateTime.UtcNow }
+                    ]
+                }
+            ]
+        };
+        var otherEvent = new Event
+        {
+            Organizer = otherOrganiser,
+            EventName = "Other event",
+            Description = "Not owned",
+            EventDate = new DateOnly(2026, 6, 10),
+            Location = "Other Park",
+            DistanceKM = 5,
+            EventType = EventTypeOption.Walk,
+            RegistrationDeadline = new DateOnly(2026, 6, 1),
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.DbContext.Events.AddRange(ownedEvent, otherEvent);
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await fixture.Controller.GetMine(CancellationToken.None);
+
+        var response = Assert.IsType<OkObjectResult>(result.Result);
+        var events = Assert.IsAssignableFrom<IReadOnlyList<OrganiserEventSummaryResponse>>(response.Value);
+        var singleEvent = Assert.Single(events);
+        Assert.Equal("Owned event", singleEvent.EventName);
+        Assert.Equal(1, singleEvent.TotalEnrolments);
+    }
+
+    [Fact]
+    public void GetMine_RequiresOrganiserRole()
+    {
+        var authorize = typeof(EventsController)
+            .GetMethod(nameof(EventsController.GetMine))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .OfType<AuthorizeAttribute>()
+            .Single();
+
+        Assert.Equal(nameof(UserRole.Organiser), authorize.Roles);
+    }
+
     public static IEnumerable<object[]> InvalidCreateRequests() =>
         new[]
         {

@@ -35,10 +35,10 @@ public sealed class PrimaryNavigationViewModel
                 "Participant navigation",
                 [
                     new("Home", "home", "Home", "Index"),
-                    new("My Races", "races", null, null),
-                    new("Join Race", "join", null, null),
-                    new("My Results", "results", null, null),
-                    new("Profile", "profile", null, null)
+                    new("My Races", "races", "Participant", "MyRaces"),
+                    new("Join Race", "join", "Participant", "Join"),
+                    new("My Results", "results", "Participant", "MyResults"),
+                    new("Profile", "profile", "Participant", "Profile")
                 ],
                 currentController,
                 currentAction);
@@ -50,10 +50,10 @@ public sealed class PrimaryNavigationViewModel
                 "Organiser navigation",
                 [
                     new("Home", "home", "Home", "Index"),
-                    new("My Events", "events", null, null),
-                    new("Add Race", "add", null, null),
-                    new("Enrolments & Results", "results", null, null),
-                    new("Profile", "profile", null, null)
+                    new("My Events", "events", "Organiser", "MyEvents"),
+                    new("Add Race", "add", "Organiser", "CreateEvent"),
+                    new("Enrolments & Results", "results", "Organiser", "Enrolments"),
+                    new("Profile", "profile", "Organiser", "Profile")
                 ],
                 currentController,
                 currentAction);

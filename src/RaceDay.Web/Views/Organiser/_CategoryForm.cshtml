@@ -1,0 +1,32 @@
+@model RaceDay.Web.Models.Organiser.OrganiserCategoryFormViewModel
+@{
+    var formAction = ViewData["FormAction"]?.ToString() ?? "CreateCategory";
+}
+<form asp-action="@formAction" asp-route-id="@Model.CategoryID" method="post" class="participant-card">
+    <div asp-validation-summary="ModelOnly" class="event-state event-state--error" role="alert"></div>
+    <input asp-for="EventID" type="hidden" />
+    <div class="form-field">
+        <label asp-for="CategoryName"></label>
+        <input asp-for="CategoryName" />
+        <span asp-validation-for="CategoryName"></span>
+    </div>
+    <div class="form-field">
+        <label asp-for="DistanceKM"></label>
+        <input asp-for="DistanceKM" type="number" min="0.01" step="0.01" />
+        <span asp-validation-for="DistanceKM"></span>
+    </div>
+    <div class="form-field">
+        <label asp-for="MaxParticipants"></label>
+        <input asp-for="MaxParticipants" type="number" min="1" />
+        <span asp-validation-for="MaxParticipants"></span>
+    </div>
+    <div class="form-field">
+        <label asp-for="EntryFee"></label>
+        <input asp-for="EntryFee" type="number" min="0" step="0.01" />
+        <span asp-validation-for="EntryFee"></span>
+    </div>
+    <div class="organiser-actions">
+        <button class="event-retry" type="submit">Save category</button>
+        <a class="event-retry" asp-action="Details" asp-route-id="@Model.EventID">Cancel</a>
+    </div>
+</form>

@@ -45,7 +45,8 @@ public sealed class AccountController(
                     model.LastName,
                     model.Email,
                     model.Password,
-                    Role: 1),
+                    model.Role,
+                    model.OrganiserRegistrationCode),
                 cancellationToken);
         }
         catch (HttpRequestException)
@@ -64,7 +65,9 @@ public sealed class AccountController(
         if (apiResponse.StatusCode == HttpStatusCode.Created)
         {
             TempData["AccountMessage"] =
-                "Your Participant account has been created. Please sign in; registration did not sign you in automatically.";
+                model.Role == 0
+                    ? "Your Organiser account has been created. Please sign in; registration did not sign you in automatically."
+                    : "Your Participant account has been created. Please sign in; registration did not sign you in automatically.";
             return RedirectToAction(nameof(Login));
         }
 
@@ -73,6 +76,13 @@ public sealed class AccountController(
             return ShowRegistrationError(
                 model,
                 "An account with that email address already exists.");
+        }
+
+        if (apiResponse.StatusCode == HttpStatusCode.Forbidden)
+        {
+            return ShowRegistrationError(
+                model,
+                "Organiser registration is unavailable or the invitation code is incorrect.");
         }
 
         if (apiResponse.StatusCode == HttpStatusCode.BadRequest)
@@ -362,8 +372,10 @@ public sealed class AccountController(
     {
         model.Password = string.Empty;
         model.ConfirmPassword = string.Empty;
+        model.OrganiserRegistrationCode = string.Empty;
         ModelState.Remove(nameof(model.Password));
         ModelState.Remove(nameof(model.ConfirmPassword));
+        ModelState.Remove(nameof(model.OrganiserRegistrationCode));
     }
 
     private sealed record RegisterApiRequest(
@@ -371,7 +383,8 @@ public sealed class AccountController(
         string LastName,
         string Email,
         string Password,
-        int Role);
+        int Role,
+        string? OrganiserRegistrationCode);
 
     private sealed record LoginApiRequest(string Email, string Password);
 }

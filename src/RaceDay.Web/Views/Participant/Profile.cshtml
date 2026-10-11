@@ -1,0 +1,54 @@
+@model RaceDay.Web.Models.Participant.ParticipantProfileViewModel
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<section class="participant-page" aria-labelledby="page-heading">
+    <header class="participant-page__header">
+        <p class="welcome__eyebrow">Participant</p>
+        <h1 id="page-heading">Profile</h1>
+        <p>View and update the account details associated with your RaceDay profile.</p>
+    </header>
+
+    @if (TempData["ParticipantMessage"] is string successMessage)
+    {
+        <p class="event-notice" role="status">@successMessage</p>
+    }
+    @if (ViewData["ApiMessage"] is string apiMessage)
+    {
+        <p class="event-notice event-notice--warning" role="alert">@apiMessage</p>
+        <a class="event-retry" asp-action="Profile">Retry</a>
+    }
+    else
+    {
+        <section class="participant-card profile-card">
+            <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+            <form asp-action="Profile" method="post" class="account-form">
+                <div class="form-field">
+                    <label asp-for="FirstName"></label>
+                    <input asp-for="FirstName" autocomplete="given-name" />
+                    <span asp-validation-for="FirstName" class="field-error"></span>
+                </div>
+                <div class="form-field">
+                    <label asp-for="LastName"></label>
+                    <input asp-for="LastName" autocomplete="family-name" />
+                    <span asp-validation-for="LastName" class="field-error"></span>
+                </div>
+                <div class="form-field">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" type="email" autocomplete="email" />
+                    <span asp-validation-for="Email" class="field-error"></span>
+                </div>
+                <div class="form-field">
+                    <span class="profile-field-label">Role</span>
+                    <p>@Model.Role</p>
+                </div>
+                <div class="form-field">
+                    <span class="profile-field-label">Account created</span>
+                    <p>@Model.CreatedAt.ToString("D")</p>
+                </div>
+                <button class="account-button" type="submit">Save profile</button>
+            </form>
+        </section>
+    }
+</section>

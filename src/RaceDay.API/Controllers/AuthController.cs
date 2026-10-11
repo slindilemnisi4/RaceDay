@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,15 +17,18 @@ public sealed class AuthController : ControllerBase
     private readonly RaceDayDbContext dbContext;
     private readonly PasswordHashService passwordHashService;
     private readonly JwtTokenService jwtTokenService;
+    private readonly IConfiguration configuration;
 
     public AuthController(
         RaceDayDbContext dbContext,
         PasswordHashService passwordHashService,
-        JwtTokenService jwtTokenService)
+        JwtTokenService jwtTokenService,
+        IConfiguration configuration)
     {
         this.dbContext = dbContext;
         this.passwordHashService = passwordHashService;
         this.jwtTokenService = jwtTokenService;
+        this.configuration = configuration;
     }
 
     // Registration must be available before a user has an account or JWT.
@@ -40,6 +45,14 @@ public sealed class AuthController : ControllerBase
         {
             ModelState.AddModelError(nameof(request.Role), "Role must be Organiser or Participant.");
             return ValidationProblem(ModelState);
+        }
+
+        if (request.Role == UserRole.Organiser
+            && !HasValidOrganiserRegistrationCode(request.OrganiserRegistrationCode))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new { message = "Organiser registration is unavailable or the invitation code is invalid." });
         }
 
         var normalizedEmail = request.Email.Trim().ToUpperInvariant();
@@ -83,6 +96,37 @@ public sealed class AuthController : ControllerBase
         };
 
         return Created($"/api/auth/{user.UserID}", response);
+    }
+
+    private bool HasValidOrganiserRegistrationCode(string? suppliedCode)
+    {
+        if (suppliedCode is null
+            || suppliedCode.Length != 4
+            || !suppliedCode.All(char.IsAsciiDigit))
+        {
+            return false;
+        }
+
+        var suppliedHash = SHA256.HashData(Encoding.UTF8.GetBytes(suppliedCode));
+        var configuredCodes = configuration
+            .GetSection("Registration:OrganiserCodes")
+            .GetChildren()
+            .Select(section => section.Value)
+            .Append(configuration["Registration:OrganiserCode"]);
+
+        var isValid = false;
+        foreach (var configuredCode in configuredCodes)
+        {
+            if (string.IsNullOrEmpty(configuredCode))
+            {
+                continue;
+            }
+
+            var configuredHash = SHA256.HashData(Encoding.UTF8.GetBytes(configuredCode));
+            isValid |= CryptographicOperations.FixedTimeEquals(configuredHash, suppliedHash);
+        }
+
+        return isValid;
     }
 
     /// <summary>

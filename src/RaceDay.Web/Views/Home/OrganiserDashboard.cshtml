@@ -1,0 +1,66 @@
+@model RaceDay.Web.Models.Organiser.OrganiserDashboardViewModel
+@{
+    ViewData["Title"] = "Organiser dashboard";
+}
+
+<section class="participant-page" aria-labelledby="page-heading">
+    <header class="participant-page__header">
+        <p class="welcome__eyebrow">Organiser</p>
+        <h1 id="page-heading">Your dashboard</h1>
+        <p>Manage your events and keep track of participant entries.</p>
+    </header>
+
+    @if (Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Failure)
+    {
+        <section class="event-state event-state--error" role="alert">
+            <h2>Dashboard temporarily unavailable</h2>
+            <p>@Model.Message</p>
+            <a class="event-retry" asp-controller="Home" asp-action="Index">Retry</a>
+        </section>
+    }
+    else
+    {
+        <div class="participant-card-grid">
+            <article class="participant-card">
+                <h2>@Model.TotalEvents</h2>
+                <p>Total events</p>
+            </article>
+            <article class="participant-card">
+                <h2>@Model.UpcomingEvents</h2>
+                <p>Upcoming events</p>
+            </article>
+            <article class="participant-card">
+                <h2>@Model.TotalEnrolments</h2>
+                <p>Total enrolments</p>
+            </article>
+        </div>
+
+        @if (Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Empty)
+        {
+            <section class="event-state" aria-live="polite">
+                <h2>You have not created an event yet</h2>
+                <p>Create your first event to start organising a race.</p>
+                <a class="event-retry" asp-controller="Organiser" asp-action="CreateEvent">Create event</a>
+            </section>
+        }
+        else
+        {
+            <section class="participant-page">
+                <h2>Recent events</h2>
+                <div class="participant-card-grid">
+                    @foreach (var eventItem in Model.Events.Take(3))
+                    {
+                        <article class="participant-card">
+                            <p class="welcome__eyebrow">@eventItem.EventTypeLabel</p>
+                            <h3>@eventItem.EventName</h3>
+                            <p>@eventItem.EventDate.ToString("D") · @eventItem.Location</p>
+                            <p>@eventItem.TotalEnrolments enrolments</p>
+                            <a class="event-retry" asp-controller="Organiser" asp-action="Details" asp-route-id="@eventItem.EventID">Manage event</a>
+                        </article>
+                    }
+                </div>
+                <a class="event-retry" asp-controller="Organiser" asp-action="MyEvents">View all events</a>
+            </section>
+        }
+    }
+</section>

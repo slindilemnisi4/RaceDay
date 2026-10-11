@@ -29,4 +29,13 @@ public sealed class RegisterViewModel
     [Compare(nameof(Password), ErrorMessage = "The password and confirmation do not match.")]
     [Display(Name = "Confirm password")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    [Range(0, 1)]
+    [Display(Name = "Account type")]
+    public int Role { get; set; } = 1;
+
+    [StringLength(4, MinimumLength = 4)]
+    [RegularExpression(@"^[0-9]{4}$", ErrorMessage = "Enter a four-digit invitation code.")]
+    [Display(Name = "Organiser invitation code")]
+    public string? OrganiserRegistrationCode { get; set; }
 }

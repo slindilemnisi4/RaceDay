@@ -70,6 +70,14 @@ else
                                 <dd>@eventItem.RegistrationDeadline.ToString("D")</dd>
                             </div>
                         </dl>
+
+                        @if (User.IsInRole("Participant"))
+                        {
+                            <a class="event-retry"
+                               asp-controller="Participant"
+                               asp-action="Join"
+                               asp-route-eventID="@eventItem.EventID">Choose a category</a>
+                        }
                     </article>
                 }
             </div>

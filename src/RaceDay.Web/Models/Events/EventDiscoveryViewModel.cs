@@ -28,11 +28,13 @@ public sealed record EventDiscoveryViewModel(
             [],
             "Your account does not have permission to view events.");
 
-    public static EventDiscoveryViewModel Success(IReadOnlyList<EventCardViewModel> events) =>
+    public static EventDiscoveryViewModel Success(
+        IReadOnlyList<EventCardViewModel> events) =>
         new(EventDiscoveryState.Success, events);
 }
 
 public sealed record EventCardViewModel(
+    int EventID,
     string EventName,
     string Description,
     DateOnly EventDate,
@@ -49,3 +51,9 @@ public sealed record EventCardViewModel(
         _ => "Unknown type"
     };
 }
+
+public sealed record EventCategoryViewModel(
+    int CategoryID,
+    string CategoryName,
+    decimal? DistanceKM,
+    decimal EntryFee);
