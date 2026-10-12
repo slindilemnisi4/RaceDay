@@ -18,7 +18,11 @@ public sealed class EventResponse
 
     public decimal DistanceKM { get; init; }
 
+    public decimal? EntryFee { get; init; }
+
     public EventTypeOption EventType { get; init; }
+
+    public EventStatus Status { get; init; }
 
     public DateOnly RegistrationDeadline { get; init; }
 

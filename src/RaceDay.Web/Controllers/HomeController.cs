@@ -78,7 +78,9 @@ public class HomeController(
                     eventResponse.Location,
                     eventResponse.DistanceKM,
                     eventResponse.EventType,
-                    eventResponse.RegistrationDeadline))
+                    eventResponse.RegistrationDeadline,
+                    eventResponse.EntryFee,
+                    eventResponse.Status))
                 .ToList();
 
             return View(events.Count == 0
@@ -115,24 +117,15 @@ public class HomeController(
     {
         try
         {
-            var response = await apiClient.GetAsync<List<ApiOrganiserEventSummaryResponse>>(
+            var platformResponse = await apiClient.GetAsync<List<ApiEventResponse>>(
+                "api/events",
+                cancellationToken);
+            var ownerResponse = await apiClient.GetAsync<List<ApiOrganiserEventSummaryResponse>>(
                 "api/events/mine",
                 cancellationToken);
-            if (response.StatusCode != HttpStatusCode.OK || response.Data is null)
-            {
-                logger.LogWarning(
-                    "The API returned HTTP {StatusCode} while retrieving the organiser dashboard.",
-                    (int)response.StatusCode);
-                return View(
-                    "OrganiserDashboard",
-                    new OrganiserDashboardViewModel(
-                        OrganiserPageState.Failure,
-                        [],
-                        "Your dashboard could not be loaded. Please try again."));
-            }
 
-            var events = response.Data
-                .Select(item => new OrganiserEventViewModel(
+            var platformEvents = platformResponse.StatusCode == HttpStatusCode.OK
+                ? platformResponse.Data?.Select(item => new EventCardViewModel(
                     item.EventID,
                     item.EventName,
                     item.Description,
@@ -141,15 +134,44 @@ public class HomeController(
                     item.DistanceKM,
                     item.EventType,
                     item.RegistrationDeadline,
-                    item.CreatedAt,
-                    item.TotalEnrolments))
-                .ToList();
+                    item.EntryFee,
+                    item.Status)).ToList() ?? []
+                : [];
+            var ownEvents = ownerResponse.StatusCode == HttpStatusCode.OK
+                ? ownerResponse.Data?.Select(ToOrganiserEventViewModel).ToList() ?? []
+                : [];
+
+            if (platformResponse.StatusCode != HttpStatusCode.OK || platformResponse.Data is null)
+            {
+                logger.LogWarning(
+                    "The API returned HTTP {StatusCode} while retrieving RaceDay-wide events for the organiser dashboard.",
+                    (int)platformResponse.StatusCode);
+            }
+
+            if (ownerResponse.StatusCode != HttpStatusCode.OK || ownerResponse.Data is null)
+            {
+                logger.LogWarning(
+                    "The API returned HTTP {StatusCode} while retrieving organiser-owned dashboard events.",
+                    (int)ownerResponse.StatusCode);
+            }
 
             return View(
                 "OrganiserDashboard",
                 new OrganiserDashboardViewModel(
-                    events.Count == 0 ? OrganiserPageState.Empty : OrganiserPageState.Success,
-                    events));
+                    ownerResponse.StatusCode != HttpStatusCode.OK || ownerResponse.Data is null
+                        ? OrganiserPageState.Failure
+                        : ownEvents.Count == 0 ? OrganiserPageState.Empty : OrganiserPageState.Success,
+                    ownEvents,
+                    platformResponse.StatusCode != HttpStatusCode.OK || platformResponse.Data is null
+                        ? OrganiserPageState.Failure
+                        : platformEvents.Count == 0 ? OrganiserPageState.Empty : OrganiserPageState.Success,
+                    platformEvents,
+                    ownerResponse.StatusCode == HttpStatusCode.OK
+                        ? null
+                        : "Your event summary could not be loaded. Please try again.",
+                    platformResponse.StatusCode == HttpStatusCode.OK
+                        ? null
+                        : "RaceDay-wide events could not be loaded. Please try again."));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -163,6 +185,9 @@ public class HomeController(
                 new OrganiserDashboardViewModel(
                     OrganiserPageState.Failure,
                     [],
+                    OrganiserPageState.Failure,
+                    [],
+                    "The request timed out. Please try again.",
                     "The request timed out. Please try again."));
         }
         catch (HttpRequestException exception)
@@ -173,6 +198,9 @@ public class HomeController(
                 new OrganiserDashboardViewModel(
                     OrganiserPageState.Failure,
                     [],
+                    OrganiserPageState.Failure,
+                    [],
+                    "We couldn't reach RaceDay. Please try again later.",
                     "We couldn't reach RaceDay. Please try again later."));
         }
         catch (JsonException exception)
@@ -183,9 +211,28 @@ public class HomeController(
                 new OrganiserDashboardViewModel(
                     OrganiserPageState.Failure,
                     [],
+                    OrganiserPageState.Failure,
+                    [],
+                    "The API response could not be read. Please try again.",
                     "The API response could not be read. Please try again."));
         }
     }
+
+    private static OrganiserEventViewModel ToOrganiserEventViewModel(
+        ApiOrganiserEventSummaryResponse item) =>
+        new(
+            item.EventID,
+            item.EventName,
+            item.Description,
+            item.EventDate,
+            item.Location,
+            item.DistanceKM,
+            item.EntryFee,
+            item.EventType,
+            item.Status,
+            item.RegistrationDeadline,
+            item.CreatedAt,
+            item.TotalEnrolments);
 
     [AllowAnonymous]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

@@ -18,12 +18,30 @@ public sealed class EventViewingTests
     {
         await using var fixture = TestFixture.Create(UserRole.Organiser);
         fixture.AddEvent("Organiser Event");
+        var otherOrganizer = fixture.AddUser("OTHER@EXAMPLE.COM");
+        fixture.AddEvent("Another organiser's event", otherOrganizer.UserID);
 
         var result = await fixture.Controller.GetAll(CancellationToken.None);
 
         var events = Assert.IsType<List<EventResponse>>(Assert.IsType<OkObjectResult>(result.Result).Value);
-        Assert.Single(events);
-        Assert.Equal("Organiser Event", events[0].EventName);
+        Assert.Equal(2, events.Count);
+        Assert.Contains(events, item => item.EventName == "Organiser Event");
+        Assert.Contains(events, item => item.EventName == "Another organiser's event");
+    }
+
+    [Fact]
+    public async Task GetAllKeepsCancelledEventsVisibleWithTheirStatus()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+        var cancelledEvent = fixture.AddEvent("Cancelled event");
+        cancelledEvent.Status = EventStatus.Cancelled;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await fixture.Controller.GetAll(CancellationToken.None);
+        var response = Assert.IsType<EventResponse>(
+            Assert.Single(Assert.IsType<List<EventResponse>>(Assert.IsType<OkObjectResult>(result.Result).Value)));
+
+        Assert.Equal(EventStatus.Cancelled, response.Status);
     }
 
     [Fact]
@@ -151,11 +169,27 @@ public sealed class EventViewingTests
             return new TestFixture(dbContext, controller, user);
         }
 
-        public Event AddEvent(string name)
+        public User AddUser(string email)
+        {
+            var user = new User
+            {
+                FirstName = "Other",
+                LastName = "Organiser",
+                Email = email,
+                PasswordHash = "hash",
+                Role = UserRole.Organiser,
+                CreatedAt = DateTime.UtcNow
+            };
+            DbContext.Users.Add(user);
+            DbContext.SaveChanges();
+            return user;
+        }
+
+        public Event AddEvent(string name, int? organizerID = null)
         {
             var eventEntity = new Event
             {
-                OrganizerID = User.UserID,
+                OrganizerID = organizerID ?? User.UserID,
                 EventName = name,
                 Description = "A viewed event.",
                 EventDate = new DateOnly(2026, 5, 10),

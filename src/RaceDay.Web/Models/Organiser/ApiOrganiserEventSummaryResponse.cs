@@ -14,7 +14,11 @@ public sealed class ApiOrganiserEventSummaryResponse
 
     public decimal DistanceKM { get; init; }
 
+    public decimal? EntryFee { get; init; }
+
     public int EventType { get; init; }
+
+    public int Status { get; init; }
 
     public DateOnly RegistrationDeadline { get; init; }
 

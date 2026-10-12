@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using RaceDay.Web.Models.Events;
 
 namespace RaceDay.Web.Models.Participant;
@@ -21,7 +22,13 @@ public sealed record ParticipantRaceViewModel(
     string? Location,
     string CategoryName,
     decimal? EntryFee,
-    DateTime EntryDate);
+    bool IsCancelled,
+    DateTime EntryDate)
+{
+    public string EntryFeeLabel => EntryFee is decimal fee
+        ? $"R{fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}"
+        : "Not available";
+}
 
 public sealed record MyResultsViewModel(
     ParticipantPageState State,
@@ -87,4 +94,8 @@ public sealed record JoinRaceEventViewModel(
     string EventName,
     DateOnly EventDate,
     string Location,
-    IReadOnlyList<EventCategoryViewModel> Categories);
+    IReadOnlyList<EventCategoryViewModel> Categories,
+    int Status)
+{
+    public bool IsCancelled => Status == 1;
+}

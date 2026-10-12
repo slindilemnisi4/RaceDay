@@ -38,17 +38,32 @@
         <div class="participant-card-grid">
             @foreach (var item in Model.Events)
             {
-                <article class="participant-card">
+                <article class="participant-card @(item.IsCancelled ? "event-card--cancelled" : null)">
                     <p class="welcome__eyebrow">@item.EventTypeLabel</p>
+                    @if (item.IsCancelled)
+                    {
+                        <p class="event-status event-status--cancelled">CANCELLED</p>
+                    }
                     <h2>@item.EventName</h2>
                     <p>@item.Description</p>
                     <dl class="event-card__details">
                         <div><dt>Date</dt><dd>@item.EventDate.ToString("D")</dd></div>
                         <div><dt>Location</dt><dd>@item.Location</dd></div>
                         <div><dt>Distance</dt><dd>@item.DistanceKM.ToString("0.##") km</dd></div>
+                        <div><dt>Entry fee</dt><dd>@item.EntryFeeLabel</dd></div>
                         <div><dt>Enrolments</dt><dd>@item.TotalEnrolments</dd></div>
                     </dl>
                     <a class="event-retry" asp-action="Details" asp-route-id="@item.EventID">Manage event</a>
+                    @if (!item.IsCancelled)
+                    {
+                        <div class="organiser-actions">
+                            <a class="event-retry" asp-action="EditEvent" asp-route-id="@item.EventID">Edit</a>
+                            <form asp-action="CancelEvent" asp-route-id="@item.EventID" method="post"
+                                  onsubmit="return confirm('Cancel this event? Existing enrolments and results will be kept.');">
+                                <button class="event-retry event-retry--danger" type="submit">Cancel event</button>
+                            </form>
+                        </div>
+                    }
                 </article>
             }
         </div>

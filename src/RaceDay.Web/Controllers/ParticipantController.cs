@@ -74,6 +74,7 @@ public sealed class ParticipantController(
                         eventDetails?.Location,
                         enrolment.CategoryName,
                         categoryDetails?.EntryFee,
+                        eventDetails?.Status == 1,
                         enrolment.EntryDate);
                 })
                 .ToList();
@@ -345,7 +346,8 @@ public sealed class ParticipantController(
                             category.CategoryName,
                             category.DistanceKM,
                             category.EntryFee))
-                        .ToList()))
+                        .ToList(),
+                    eventItem.Status))
                 .ToList();
 
             return View(new JoinRaceViewModel(

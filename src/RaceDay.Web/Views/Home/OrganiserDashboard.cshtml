@@ -7,51 +7,55 @@
     <header class="participant-page__header">
         <p class="welcome__eyebrow">Organiser</p>
         <h1 id="page-heading">Your dashboard</h1>
-        <p>Manage your events and keep track of participant entries.</p>
+        <p>Explore RaceDay events and keep track of the events you organise.</p>
     </header>
 
-    @if (Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Failure)
-    {
-        <section class="event-state event-state--error" role="alert">
-            <h2>Dashboard temporarily unavailable</h2>
-            <p>@Model.Message</p>
-            <a class="event-retry" asp-controller="Home" asp-action="Index">Retry</a>
-        </section>
-    }
-    else
-    {
-        <div class="participant-card-grid">
-            <article class="participant-card">
-                <h2>@Model.TotalEvents</h2>
-                <p>Total events</p>
-            </article>
-            <article class="participant-card">
-                <h2>@Model.UpcomingEvents</h2>
-                <p>Upcoming events</p>
-            </article>
-            <article class="participant-card">
-                <h2>@Model.TotalEnrolments</h2>
-                <p>Total enrolments</p>
-            </article>
-        </div>
-
-        @if (Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Empty)
+    <section class="participant-page" aria-labelledby="own-events-heading">
+        <h2 id="own-events-heading">Your event summary</h2>
+        @if (Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Failure)
         {
-            <section class="event-state" aria-live="polite">
-                <h2>You have not created an event yet</h2>
-                <p>Create your first event to start organising a race.</p>
-                <a class="event-retry" asp-controller="Organiser" asp-action="CreateEvent">Create event</a>
+            <section class="event-state event-state--error" role="alert">
+                <h3>Your event summary is temporarily unavailable</h3>
+                <p>@Model.Message</p>
+                <a class="event-retry" asp-controller="Home" asp-action="Index">Retry</a>
             </section>
         }
         else
         {
-            <section class="participant-page">
-                <h2>Recent events</h2>
+            <div class="participant-card-grid">
+                <article class="participant-card">
+                    <h3>@Model.TotalEvents</h3>
+                    <p>Total events</p>
+                </article>
+                <article class="participant-card">
+                    <h3>@Model.UpcomingEvents</h3>
+                    <p>Upcoming events</p>
+                </article>
+                <article class="participant-card">
+                    <h3>@Model.TotalEnrolments</h3>
+                    <p>Total enrolments</p>
+                </article>
+            </div>
+
+            @if (Model.State == RaceDay.Web.Models.Organiser.OrganiserPageState.Empty)
+            {
+                <section class="event-state" aria-live="polite">
+                    <h3>You have not created an event yet</h3>
+                    <p>Create your first event to start organising a race.</p>
+                    <a class="event-retry" asp-controller="Organiser" asp-action="CreateEvent">Create event</a>
+                </section>
+            }
+            else
+            {
                 <div class="participant-card-grid">
                     @foreach (var eventItem in Model.Events.Take(3))
                     {
-                        <article class="participant-card">
+                        <article class="participant-card @(eventItem.IsCancelled ? "event-card--cancelled" : null)">
                             <p class="welcome__eyebrow">@eventItem.EventTypeLabel</p>
+                            @if (eventItem.IsCancelled)
+                            {
+                                <p class="event-status event-status--cancelled">CANCELLED</p>
+                            }
                             <h3>@eventItem.EventName</h3>
                             <p>@eventItem.EventDate.ToString("D") · @eventItem.Location</p>
                             <p>@eventItem.TotalEnrolments enrolments</p>
@@ -59,8 +63,52 @@
                         </article>
                     }
                 </div>
-                <a class="event-retry" asp-controller="Organiser" asp-action="MyEvents">View all events</a>
+                <a class="event-retry" asp-controller="Organiser" asp-action="MyEvents">View all your events</a>
+            }
+        }
+    </section>
+
+    <section class="participant-page" aria-labelledby="platform-events-heading">
+        <h2 id="platform-events-heading">Events across RaceDay</h2>
+        @if (Model.PlatformEventsState == RaceDay.Web.Models.Organiser.OrganiserPageState.Failure)
+        {
+            <section class="event-state event-state--error" role="alert">
+                <h3>RaceDay events are temporarily unavailable</h3>
+                <p>@Model.PlatformEventsMessage</p>
+                <a class="event-retry" asp-controller="Home" asp-action="Index">Retry</a>
             </section>
         }
-    }
+        else if (Model.PlatformEventsState == RaceDay.Web.Models.Organiser.OrganiserPageState.Empty)
+        {
+            <section class="event-state" aria-live="polite">
+                <h3>No events yet</h3>
+                <p>There are no events available across RaceDay right now.</p>
+            </section>
+        }
+        else
+        {
+            <div class="event-grid">
+                @foreach (var eventItem in Model.PlatformEvents)
+                {
+                    <article class="event-card @(eventItem.IsCancelled ? "event-card--cancelled" : null)">
+                        <div class="event-card__heading">
+                            <span class="event-card__type">@eventItem.EventTypeLabel</span>
+                            <h3>@eventItem.EventName</h3>
+                        </div>
+                        @if (eventItem.IsCancelled)
+                        {
+                            <p class="event-status event-status--cancelled">CANCELLED</p>
+                        }
+                        <p class="event-card__description">@eventItem.Description</p>
+                        <dl class="event-card__details">
+                            <div><dt>Date</dt><dd>@eventItem.EventDate.ToString("D")</dd></div>
+                            <div><dt>Location</dt><dd>@eventItem.Location</dd></div>
+                            <div><dt>Distance</dt><dd>@eventItem.DistanceKM.ToString("0.##") km</dd></div>
+                            <div><dt>Entry fee</dt><dd>@eventItem.EntryFeeLabel</dd></div>
+                        </dl>
+                    </article>
+                }
+            </div>
+        }
+    </section>
 </section>

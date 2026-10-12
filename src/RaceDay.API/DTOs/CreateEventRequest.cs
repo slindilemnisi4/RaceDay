@@ -19,6 +19,9 @@ public sealed class CreateEventRequest
     [Range(typeof(decimal), "0.01", "9999.99")]
     public decimal DistanceKM { get; init; }
 
+    [Range(typeof(decimal), "0", "99999999.99")]
+    public decimal EntryFee { get; init; }
+
     [Required]
     public EventTypeOption? EventType { get; init; }
 

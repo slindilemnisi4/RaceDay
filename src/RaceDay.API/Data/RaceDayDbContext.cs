@@ -90,6 +90,11 @@ public class RaceDayDbContext : DbContext
             .Property(e => e.EventType)
             .HasConversion<string>();
 
+        modelBuilder.Entity<Event>()
+            .Property(e => e.Status)
+            .HasConversion<string>()
+            .HasDefaultValue(EventStatus.Active);
+
         modelBuilder.Entity<User>()
             .Property(u => u.FirstName)
             .HasMaxLength(50);

@@ -61,6 +61,23 @@ public sealed class EventUpdateTests
     }
 
     [Fact]
+    public async Task CancelledEventCannotBeUpdated()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+        var eventEntity = fixture.AddEvent();
+        eventEntity.Status = EventStatus.Cancelled;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await fixture.Controller.Update(
+            eventEntity.EventID,
+            fixture.ValidRequest(),
+            CancellationToken.None);
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Equal("Original Event", (await fixture.DbContext.Events.SingleAsync()).EventName);
+    }
+
+    [Fact]
     public async Task MissingEventReturnsNotFound()
     {
         await using var fixture = TestFixture.Create(UserRole.Organiser);

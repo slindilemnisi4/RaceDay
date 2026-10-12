@@ -39,9 +39,13 @@
         <div class="participant-card-grid">
             @foreach (var eventItem in Model.Events)
             {
-                <article class="participant-card @(Model.SelectedEventID == eventItem.EventID ? "participant-card--selected" : null)"
+                <article class="participant-card @(Model.SelectedEventID == eventItem.EventID ? "participant-card--selected" : null) @(eventItem.IsCancelled ? "event-card--cancelled" : null)"
                          id="event-@eventItem.EventID">
                     <h2>@eventItem.EventName</h2>
+                    @if (eventItem.IsCancelled)
+                    {
+                        <p class="event-status event-status--cancelled">CANCELLED</p>
+                    }
                     @if (Model.SelectedEventID == eventItem.EventID)
                     {
                         <p class="event-card__type">Selected event</p>
@@ -57,7 +61,11 @@
                         </div>
                     </dl>
 
-                    @if (eventItem.Categories.Count == 0)
+                    @if (eventItem.IsCancelled)
+                    {
+                        <p class="event-card__join-message">Enrolment is unavailable for cancelled events.</p>
+                    }
+                    else if (eventItem.Categories.Count == 0)
                     {
                         <p class="event-card__join-message">No categories are available for this event yet.</p>
                     }
@@ -73,9 +81,8 @@
                                     var distance = category.DistanceKM is decimal categoryDistance
                                         ? $" - {categoryDistance:0.##} km"
                                         : string.Empty;
-                                    var fee = category.EntryFee.ToString("C");
                                     <option value="@category.CategoryID">
-                                        @category.CategoryName@distance — @fee
+                                        @category.CategoryName@distance — @category.EntryFeeLabel
                                     </option>
                                 }
                             </select>

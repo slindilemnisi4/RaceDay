@@ -115,6 +115,12 @@ namespace RaceDay.API.Migrations
                     b.Property<DateOnly>("RegistrationDeadline")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Active");
+
                     b.HasKey("EventID");
 
                     b.HasIndex("OrganizerID");

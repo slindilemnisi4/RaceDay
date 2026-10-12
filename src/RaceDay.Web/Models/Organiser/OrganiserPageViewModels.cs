@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using RaceDay.Web.Models.Events;
 using RaceDay.Web.Models.Participant;
 
 namespace RaceDay.Web.Models.Organiser;
@@ -13,7 +15,10 @@ public enum OrganiserPageState
 public sealed record OrganiserDashboardViewModel(
     OrganiserPageState State,
     IReadOnlyList<OrganiserEventViewModel> Events,
-    string? Message = null)
+    OrganiserPageState PlatformEventsState,
+    IReadOnlyList<EventCardViewModel> PlatformEvents,
+    string? Message = null,
+    string? PlatformEventsMessage = null)
 {
     public int TotalEvents => Events.Count;
 
@@ -31,7 +36,9 @@ public sealed record OrganiserEventViewModel(
     DateOnly EventDate,
     string Location,
     decimal DistanceKM,
+    decimal? EntryFee,
     int EventType,
+    int Status,
     DateOnly RegistrationDeadline,
     DateTime CreatedAt,
     int TotalEnrolments)
@@ -43,6 +50,12 @@ public sealed record OrganiserEventViewModel(
         2 => "Cycle",
         _ => "Unknown type"
     };
+
+    public bool IsCancelled => Status == 1;
+
+    public string EntryFeeLabel => EntryFee is decimal fee
+        ? $"R{fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}"
+        : "See category fees";
 }
 
 public sealed record OrganiserEventsPageViewModel(
@@ -89,6 +102,10 @@ public sealed class OrganiserEventFormViewModel
     [Display(Name = "Distance (km)")]
     public decimal DistanceKM { get; set; }
 
+    [Range(typeof(decimal), "0", "99999999.99")]
+    [Display(Name = "Entry fee (R)")]
+    public decimal EntryFee { get; set; }
+
     [Range(0, 2)]
     [Display(Name = "Event type")]
     public int EventType { get; set; }
@@ -118,7 +135,7 @@ public sealed class OrganiserCategoryFormViewModel
     [Display(Name = "Maximum participants")]
     public int? MaxParticipants { get; set; }
 
-    [Range(typeof(decimal), "0", "9999999999.99")]
+    [Range(typeof(decimal), "0", "99999999.99")]
     [Display(Name = "Entry fee (R)")]
     public decimal EntryFee { get; set; }
 }

@@ -10,6 +10,12 @@ public enum EventTypeOption
     Cycle
 }
 
+public enum EventStatus
+{
+    Active,
+    Cancelled
+}
+
 public class Event
 {
     public int EventID { get; set; }
@@ -29,6 +35,8 @@ public class Event
     public EventTypeOption EventType { get; set; }
 
     public DateOnly RegistrationDeadline { get; set; }
+
+    public EventStatus Status { get; set; } = EventStatus.Active;
 
     public DateTime CreatedAt { get; set; }
 

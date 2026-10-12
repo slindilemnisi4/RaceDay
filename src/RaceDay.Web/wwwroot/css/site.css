@@ -843,3 +843,46 @@ a.primary-navigation__link.is-active {
         transition: background-color 120ms ease, color 120ms ease;
     }
 }
+
+.event-status {
+    width: fit-content;
+    margin: 0.75rem 0;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.event-status--cancelled {
+    background: #f3e8e7;
+    color: #8a3028;
+}
+
+.event-card--cancelled {
+    border-color: #d8d4d3;
+    background: #f7f6f5;
+    color: #59615e;
+}
+
+.event-card--cancelled h2,
+.event-card--cancelled h3 {
+    text-decoration: line-through;
+    text-decoration-color: #8a3028;
+}
+
+.event-card--cancelled .event-card__type,
+.event-card--cancelled .welcome__eyebrow {
+    color: #68736e;
+}
+
+.event-retry--danger {
+    border: 1px solid #a33c34;
+    background: #fff;
+    color: #8a3028;
+}
+
+.event-retry--danger:hover {
+    background: #fbefee;
+    color: #8a3028;
+}

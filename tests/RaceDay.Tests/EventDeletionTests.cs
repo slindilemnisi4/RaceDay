@@ -13,19 +13,49 @@ namespace RaceDay.Tests;
 public sealed class EventDeletionTests
 {
     [Fact]
-    public async Task OrganiserCanDeleteOwnEventAndReturnsNoContent()
+    public async Task OrganiserCanCancelOwnEventWithoutDeletingIt()
     {
         await using var fixture = TestFixture.Create(UserRole.Organiser);
         var eventEntity = fixture.AddEvent();
+        var category = new Category
+        {
+            EventID = eventEntity.EventID,
+            CategoryName = "General Entry",
+            EntryFee = 0
+        };
+        var participant = fixture.AddUser(UserRole.Participant, "PARTICIPANT@EXAMPLE.COM");
+        fixture.DbContext.Categories.Add(category);
+        await fixture.DbContext.SaveChangesAsync();
+        var entry = new Entry
+        {
+            UserID = participant.UserID,
+            CategoryID = category.CategoryID,
+            EntryDate = DateTime.UtcNow
+        };
+        fixture.DbContext.Entries.Add(entry);
+        await fixture.DbContext.SaveChangesAsync();
+        fixture.DbContext.Results.Add(new Result
+        {
+            EntryID = entry.EntryID,
+            FinishTime = TimeSpan.FromMinutes(45),
+            OverallPosition = 1,
+            CategoryPosition = 1,
+            ResultStatus = ResultStatus.Finished,
+            RecordedAt = DateTime.UtcNow
+        });
+        await fixture.DbContext.SaveChangesAsync();
 
         var result = await fixture.Controller.Delete(eventEntity.EventID, CancellationToken.None);
 
         Assert.IsType<NoContentResult>(result);
-        Assert.Empty(await fixture.DbContext.Events.ToListAsync());
+        Assert.Equal(EventStatus.Cancelled, (await fixture.DbContext.Events.SingleAsync()).Status);
+        Assert.Single(await fixture.DbContext.Categories.ToListAsync());
+        Assert.Single(await fixture.DbContext.Entries.ToListAsync());
+        Assert.Single(await fixture.DbContext.Results.ToListAsync());
     }
 
     [Fact]
-    public async Task OrganiserCannotDeleteAnotherOrganisersEvent()
+    public async Task OrganiserCannotCancelAnotherOrganisersEvent()
     {
         await using var fixture = TestFixture.Create(UserRole.Organiser);
         var otherOrganizer = fixture.AddUser(UserRole.Organiser, "OTHER@EXAMPLE.COM");
@@ -35,6 +65,7 @@ public sealed class EventDeletionTests
 
         Assert.IsType<ForbidResult>(result);
         Assert.NotNull(await fixture.DbContext.Events.FindAsync(otherEvent.EventID));
+        Assert.Equal(EventStatus.Active, otherEvent.Status);
     }
 
     [Fact]

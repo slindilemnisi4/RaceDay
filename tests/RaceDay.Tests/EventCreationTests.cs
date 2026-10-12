@@ -18,15 +18,51 @@ public sealed class EventCreationTests
     {
         await using var fixture = TestFixture.Create(UserRole.Organiser);
 
-        var result = await fixture.Controller.Create(fixture.ValidRequest(), CancellationToken.None);
+        var result = await fixture.Controller.Create(fixture.ValidRequest(entryFee: 42.50m), CancellationToken.None);
 
         var created = Assert.IsType<CreatedResult>(result.Result);
         var response = Assert.IsType<EventResponse>(created.Value);
         var persistedEvent = await fixture.DbContext.Events.SingleAsync();
+        var defaultCategory = await fixture.DbContext.Categories.SingleAsync();
 
         Assert.Equal(fixture.User.UserID, response.OrganizerID);
         Assert.Equal(fixture.User.UserID, persistedEvent.OrganizerID);
         Assert.Equal("Spring Race", persistedEvent.EventName);
+        Assert.Equal(42.50m, response.EntryFee);
+        Assert.Equal(persistedEvent.EventID, defaultCategory.EventID);
+        Assert.Equal("General Entry", defaultCategory.CategoryName);
+        Assert.Equal(42.50m, defaultCategory.EntryFee);
+        Assert.Equal(EventStatus.Active, persistedEvent.Status);
+    }
+
+    [Fact]
+    public async Task FreeEventCreatesGeneralEntryWithZeroFee()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+
+        var result = await fixture.Controller.Create(fixture.ValidRequest(), CancellationToken.None);
+
+        var response = Assert.IsType<EventResponse>(Assert.IsType<CreatedResult>(result.Result).Value);
+        var category = await fixture.DbContext.Categories.SingleAsync();
+        Assert.Equal(0m, response.EntryFee);
+        Assert.Equal(0m, category.EntryFee);
+    }
+
+    [Theory]
+    [InlineData(-0.01)]
+    [InlineData(1.001)]
+    [InlineData(100000000)]
+    public async Task InvalidEntryFeeIsRejected(decimal entryFee)
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+
+        var result = await fixture.Controller.Create(
+            fixture.ValidRequest(entryFee),
+            CancellationToken.None);
+
+        Assert.IsType<ObjectResult>(result.Result);
+        Assert.Empty(await fixture.DbContext.Events.ToListAsync());
+        Assert.Empty(await fixture.DbContext.Categories.ToListAsync());
     }
 
     [Fact]
@@ -282,13 +318,14 @@ public sealed class EventCreationTests
             return new TestFixture(dbContext, controller, user);
         }
 
-        public CreateEventRequest ValidRequest() => new()
+        public CreateEventRequest ValidRequest(decimal entryFee = 0m) => new()
         {
             EventName = "Spring Race",
             Description = "A local running event.",
             EventDate = new DateOnly(2026, 5, 10),
             Location = "RaceDay Park",
             DistanceKM = 10,
+            EntryFee = entryFee,
             EventType = EventTypeOption.Run,
             RegistrationDeadline = new DateOnly(2026, 5, 1)
         };

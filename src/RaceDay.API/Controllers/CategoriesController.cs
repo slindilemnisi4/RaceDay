@@ -91,6 +91,23 @@ public sealed class CategoriesController : ControllerBase
             return Forbid();
         }
 
+        if (eventEntity.Status == EventStatus.Cancelled)
+        {
+            return Conflict(new { message = "Categories cannot be changed for a cancelled event." });
+        }
+
+        if (string.Equals(
+                request.CategoryName.Trim(),
+                "General Entry",
+                StringComparison.OrdinalIgnoreCase)
+            && await dbContext.Categories.AnyAsync(
+                category => category.EventID == eventEntity.EventID
+                    && category.CategoryName.ToLower() == "general entry",
+                cancellationToken))
+        {
+            return Conflict(new { message = "This event already has a General Entry category." });
+        }
+
         var category = new Category
         {
             EventID = eventEntity.EventID,
@@ -145,6 +162,31 @@ public sealed class CategoriesController : ControllerBase
             return Forbid();
         }
 
+        if (category.Event.Status == EventStatus.Cancelled)
+        {
+            return Conflict(new { message = "Categories cannot be changed for a cancelled event." });
+        }
+
+        var isGeneralEntry = string.Equals(
+            category.CategoryName,
+            "General Entry",
+            StringComparison.OrdinalIgnoreCase);
+        if (isGeneralEntry
+            && !string.Equals(request.CategoryName.Trim(), "General Entry", StringComparison.OrdinalIgnoreCase))
+        {
+            return Conflict(new { message = "The General Entry category name cannot be changed." });
+        }
+
+        if (!isGeneralEntry
+            && string.Equals(request.CategoryName.Trim(), "General Entry", StringComparison.OrdinalIgnoreCase)
+            && await dbContext.Categories.AnyAsync(
+                item => item.EventID == category.EventID
+                    && item.CategoryName.ToLower() == "general entry",
+                cancellationToken))
+        {
+            return Conflict(new { message = "This event already has a General Entry category." });
+        }
+
         category.CategoryName = request.CategoryName.Trim();
         category.DistanceKM = request.DistanceKM;
         category.MaxParticipants = request.MaxParticipants;
@@ -185,6 +227,19 @@ public sealed class CategoriesController : ControllerBase
             return Forbid();
         }
 
+        if (category.Event.Status == EventStatus.Cancelled)
+        {
+            return Conflict(new { message = "Categories cannot be changed for a cancelled event." });
+        }
+
+        if (string.Equals(
+            category.CategoryName,
+            "General Entry",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return Conflict(new { message = "The General Entry category cannot be deleted." });
+        }
+
         dbContext.Categories.Remove(category);
 
         try
@@ -217,7 +272,9 @@ public sealed class CategoriesController : ControllerBase
         !string.IsNullOrWhiteSpace(categoryName)
         && (!distanceKM.HasValue || distanceKM.Value > 0)
         && (!maxParticipants.HasValue || maxParticipants.Value > 0)
-        && entryFee >= 0;
+        && entryFee >= 0
+        && entryFee <= 99999999.99m
+        && decimal.Round(entryFee, 2) == entryFee;
 
     private ActionResult InvalidCategoryData()
     {

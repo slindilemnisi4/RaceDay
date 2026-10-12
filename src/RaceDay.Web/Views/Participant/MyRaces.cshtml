@@ -31,8 +31,12 @@
         <div class="participant-card-grid">
             @foreach (var race in Model.Races)
             {
-                <article class="participant-card">
+                <article class="participant-card @(race.IsCancelled ? "event-card--cancelled" : null)">
                     <h2>@race.EventName</h2>
+                    @if (race.IsCancelled)
+                    {
+                        <p class="event-status event-status--cancelled">CANCELLED</p>
+                    }
                     <dl class="event-card__details">
                         <div>
                             <dt>Event date</dt>
@@ -48,7 +52,7 @@
                         </div>
                         <div>
                             <dt>Entry fee</dt>
-                            <dd>@(race.EntryFee is decimal fee ? fee.ToString("C") : "Not available")</dd>
+                            <dd>@race.EntryFeeLabel</dd>
                         </div>
                         <div>
                             <dt>Joined</dt>

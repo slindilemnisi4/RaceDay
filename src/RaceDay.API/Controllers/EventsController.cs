@@ -28,6 +28,7 @@ public sealed class EventsController : ControllerBase
     {
         var events = await dbContext.Events
             .AsNoTracking()
+            .Include(eventEntity => eventEntity.Categories)
             .OrderBy(eventEntity => eventEntity.EventDate)
             .Select(eventEntity => ToResponse(eventEntity))
             .ToListAsync(cancellationToken);
@@ -62,7 +63,13 @@ public sealed class EventsController : ControllerBase
                 eventItem.EventDate,
                 eventItem.Location,
                 eventItem.DistanceKM,
+                eventItem.Categories!
+                    .OrderBy(category => category.CategoryName.ToLower() == "general entry" ? 0 : 1)
+                    .ThenBy(category => category.EntryFee)
+                    .Select(category => (decimal?)category.EntryFee)
+                    .FirstOrDefault(),
                 eventItem.EventType,
+                eventItem.Status,
                 eventItem.RegistrationDeadline,
                 eventItem.CreatedAt,
                 eventItem.Categories!
@@ -83,6 +90,7 @@ public sealed class EventsController : ControllerBase
     {
         var eventResponse = await dbContext.Events
             .AsNoTracking()
+            .Include(eventEntity => eventEntity.Categories)
             .Where(eventEntity => eventEntity.EventID == id)
             .Select(eventEntity => ToResponse(eventEntity))
             .FirstOrDefaultAsync(cancellationToken);
@@ -109,6 +117,7 @@ public sealed class EventsController : ControllerBase
             || request.EventDate == default
             || request.RegistrationDeadline == default
             || request.DistanceKM <= 0
+            || !IsValidEntryFee(request.EntryFee)
             || request.EventType is null
             || !Enum.IsDefined(request.EventType.Value)
             || request.RegistrationDeadline > request.EventDate)
@@ -143,7 +152,15 @@ public sealed class EventsController : ControllerBase
             DistanceKM = request.DistanceKM,
             EventType = request.EventType.Value,
             RegistrationDeadline = request.RegistrationDeadline,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Categories =
+            [
+                new Category
+                {
+                    CategoryName = "General Entry",
+                    EntryFee = request.EntryFee
+                }
+            ]
         };
 
         dbContext.Events.Add(eventEntity);
@@ -171,6 +188,7 @@ public sealed class EventsController : ControllerBase
             || request.EventDate == default
             || request.RegistrationDeadline == default
             || request.DistanceKM <= 0
+            || !IsValidEntryFee(request.EntryFee)
             || request.EventType is null
             || !Enum.IsDefined(request.EventType.Value)
             || request.RegistrationDeadline > request.EventDate)
@@ -186,6 +204,7 @@ public sealed class EventsController : ControllerBase
         }
 
         var eventEntity = await dbContext.Events
+            .Include(candidate => candidate.Categories)
             .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
 
         if (eventEntity is null)
@@ -200,6 +219,11 @@ public sealed class EventsController : ControllerBase
             return Forbid();
         }
 
+        if (eventEntity.Status == EventStatus.Cancelled)
+        {
+            return Conflict(new { message = "Cancelled events cannot be edited." });
+        }
+
         eventEntity.EventName = request.EventName.Trim();
         eventEntity.Description = request.Description.Trim();
         eventEntity.EventDate = request.EventDate;
@@ -208,10 +232,37 @@ public sealed class EventsController : ControllerBase
         eventEntity.EventType = request.EventType.Value;
         eventEntity.RegistrationDeadline = request.RegistrationDeadline;
 
+        var generalEntry = eventEntity.Categories?
+            .FirstOrDefault(category =>
+                string.Equals(category.CategoryName, "General Entry", StringComparison.OrdinalIgnoreCase));
+        if (generalEntry is null)
+        {
+            generalEntry = new Category
+            {
+                Event = eventEntity,
+                CategoryName = "General Entry",
+                EntryFee = request.EntryFee
+            };
+            dbContext.Categories.Add(generalEntry);
+        }
+        else
+        {
+            generalEntry.EntryFee = request.EntryFee;
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Ok(ToResponse(eventEntity));
     }
+
+    [HttpPost("{id:int}/cancel")]
+    [Authorize(Roles = nameof(UserRole.Organiser))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public Task<IActionResult> Cancel(int id, CancellationToken cancellationToken) =>
+        SetCancelledAsync(id, cancellationToken);
 
     [HttpDelete("{id:int}")]
     [Authorize(Roles = nameof(UserRole.Organiser))]
@@ -221,6 +272,13 @@ public sealed class EventsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        return await SetCancelledAsync(id, cancellationToken);
+    }
+
+    private async Task<IActionResult> SetCancelledAsync(
         int id,
         CancellationToken cancellationToken)
     {
@@ -245,18 +303,8 @@ public sealed class EventsController : ControllerBase
             return Forbid();
         }
 
-        dbContext.Events.Remove(eventEntity);
-
-        try
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException)
-        {
-            // Existing relationships use restricted deletes. Preserve that
-            // design and report a conflict when dependent records exist.
-            return Conflict(new { message = "The event cannot be deleted while related records exist." });
-        }
+        eventEntity.Status = EventStatus.Cancelled;
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return NoContent();
     }
@@ -279,7 +327,21 @@ public sealed class EventsController : ControllerBase
         Location = eventEntity.Location,
         DistanceKM = eventEntity.DistanceKM,
         EventType = eventEntity.EventType,
+        EntryFee = eventEntity.Categories?
+            .OrderBy(category => string.Equals(
+                category.CategoryName,
+                "General Entry",
+                StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(category => category.EntryFee)
+            .Select(category => (decimal?)category.EntryFee)
+            .FirstOrDefault(),
+        Status = eventEntity.Status,
         RegistrationDeadline = eventEntity.RegistrationDeadline,
         CreatedAt = eventEntity.CreatedAt
     };
+
+    private static bool IsValidEntryFee(decimal entryFee) =>
+        entryFee >= 0
+        && entryFee <= 99999999.99m
+        && decimal.Round(entryFee, 2) == entryFee;
 }

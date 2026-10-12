@@ -14,8 +14,12 @@ public sealed class ApiEventResponse
 
     public decimal DistanceKM { get; init; }
 
+    public decimal? EntryFee { get; init; }
+
     // The API uses System.Text.Json's default numeric enum representation.
     public int EventType { get; init; }
+
+    public int Status { get; init; }
 
     public DateOnly RegistrationDeadline { get; init; }
 }

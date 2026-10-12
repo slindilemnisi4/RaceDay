@@ -142,6 +142,24 @@ public sealed class EnrolmentCreationTests
     }
 
     [Fact]
+    public async Task CancelledEventRejectsNewEnrolments()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Participant);
+        var eventEntity = fixture.AddEvent(new DateOnly(2026, 12, 31));
+        eventEntity.Status = EventStatus.Cancelled;
+        await fixture.DbContext.SaveChangesAsync();
+        var category = fixture.AddCategory(eventEntity.EventID, maxParticipants: 10);
+
+        var result = await fixture.Controller.Create(
+            eventEntity.EventID,
+            new CreateEnrolmentRequest { CategoryID = category.CategoryID },
+            CancellationToken.None);
+
+        Assert.Equal(409, Assert.IsType<ConflictObjectResult>(result.Result).StatusCode);
+        Assert.Empty(await fixture.DbContext.Entries.ToListAsync());
+    }
+
+    [Fact]
     public async Task FullCategoryReturnsConflict()
     {
         await using var fixture = TestFixture.Create(UserRole.Participant);

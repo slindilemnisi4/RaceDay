@@ -69,6 +69,32 @@ public sealed class CategoryManagementTests
     }
 
     [Fact]
+    public async Task OrganiserCannotCreateDuplicateGeneralEntryCategoryWithDifferentCasing()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+        var eventEntity = fixture.AddEvent(fixture.User.UserID);
+        fixture.DbContext.Categories.Add(new Category
+        {
+            EventID = eventEntity.EventID,
+            CategoryName = "GENERAL ENTRY",
+            EntryFee = 0
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await fixture.Controller.Create(
+            new CreateCategoryRequest
+            {
+                EventID = eventEntity.EventID,
+                CategoryName = "General Entry",
+                EntryFee = 10
+            },
+            CancellationToken.None);
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Single(await fixture.DbContext.Categories.ToListAsync());
+    }
+
+    [Fact]
     public async Task OrganiserAndParticipantCanViewCategories()
     {
         await using var fixture = TestFixture.Create(UserRole.Participant);

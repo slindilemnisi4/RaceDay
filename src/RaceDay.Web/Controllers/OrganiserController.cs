@@ -72,6 +72,7 @@ public sealed class OrganiserController(
         CancellationToken cancellationToken)
     {
         ValidateEventDates(model);
+        ValidateEntryFee(model.EntryFee, nameof(model.EntryFee));
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -89,6 +90,7 @@ public sealed class OrganiserController(
                     model.EventDate,
                     model.Location,
                     model.DistanceKM,
+                    model.EntryFee,
                     EventType = model.EventType,
                     model.RegistrationDeadline
                 },
@@ -96,7 +98,7 @@ public sealed class OrganiserController(
 
             if (response.StatusCode == HttpStatusCode.Created && response.Data is not null)
             {
-                TempData["OrganiserMessage"] = "The event was created. Add categories to open it for enrolment.";
+                TempData["OrganiserMessage"] = "The event and its General Entry category were created.";
                 return RedirectToAction(nameof(Details), new { id = response.Data.EventID });
             }
 
@@ -139,6 +141,12 @@ public sealed class OrganiserController(
             return NotFound();
         }
 
+        if (eventItem.IsCancelled)
+        {
+            TempData["OrganiserError"] = "Cancelled events cannot be edited.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         return View(new OrganiserEventFormViewModel
         {
             EventID = eventItem.EventID,
@@ -147,6 +155,7 @@ public sealed class OrganiserController(
             EventDate = eventItem.EventDate,
             Location = eventItem.Location,
             DistanceKM = eventItem.DistanceKM,
+            EntryFee = eventItem.EntryFee ?? 0,
             EventType = eventItem.EventType,
             RegistrationDeadline = eventItem.RegistrationDeadline
         });
@@ -161,6 +170,7 @@ public sealed class OrganiserController(
     {
         model.EventID = id;
         ValidateEventDates(model);
+        ValidateEntryFee(model.EntryFee, nameof(model.EntryFee));
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -178,6 +188,7 @@ public sealed class OrganiserController(
                     model.EventDate,
                     model.Location,
                     model.DistanceKM,
+                    model.EntryFee,
                     EventType = model.EventType,
                     model.RegistrationDeadline
                 },
@@ -214,16 +225,17 @@ public sealed class OrganiserController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteEvent(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CancelEvent(int id, CancellationToken cancellationToken)
     {
-        var response = await SendDeleteAsync($"api/events/{id}", "event", cancellationToken);
+        var response = await SendCancelAsync(id, cancellationToken);
         if (response is null)
         {
+            TempData["OrganiserMessage"] = "The event was cancelled. Existing enrolments and results were kept.";
             return RedirectToAction(nameof(MyEvents));
         }
 
         TempData["OrganiserError"] = response;
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(MyEvents));
     }
 
     [HttpGet]
@@ -233,6 +245,12 @@ public sealed class OrganiserController(
         if (ownedEvent is null)
         {
             return NotFound();
+        }
+
+        if (ownedEvent.IsCancelled)
+        {
+            TempData["OrganiserError"] = "Categories cannot be changed for a cancelled event.";
+            return RedirectToAction(nameof(Details), new { id = eventID });
         }
 
         return View(new OrganiserCategoryFormViewModel { EventID = eventID });
@@ -249,6 +267,7 @@ public sealed class OrganiserController(
             return NotFound();
         }
 
+        ValidateEntryFee(model.EntryFee, nameof(model.EntryFee));
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -308,6 +327,12 @@ public sealed class OrganiserController(
             return NotFound();
         }
 
+        if (await FindOwnedEventAsync(category.EventID, cancellationToken) is { IsCancelled: true })
+        {
+            TempData["OrganiserError"] = "Categories cannot be changed for a cancelled event.";
+            return RedirectToAction(nameof(Details), new { id = category.EventID });
+        }
+
         return View(new OrganiserCategoryFormViewModel
         {
             CategoryID = category.CategoryID,
@@ -341,6 +366,13 @@ public sealed class OrganiserController(
             return NotFound();
         }
 
+        if (string.Equals(existing.CategoryName, "General Entry", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(nameof(model.CategoryName), "The General Entry category is managed with the event.");
+            return View(model);
+        }
+
+        ValidateEntryFee(model.EntryFee, nameof(model.EntryFee));
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -944,6 +976,37 @@ public sealed class OrganiserController(
         }
     }
 
+    private async Task<string?> SendCancelAsync(int eventID, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await apiClient.PostAuthenticatedAsync<object>(
+                $"api/events/{eventID}/cancel",
+                cancellationToken);
+            if (response.StatusCode == HttpStatusCode.NoContent)
+            {
+                return null;
+            }
+
+            LogApiFailure(response.StatusCode, "cancel event");
+            return "The event could not be cancelled. Refresh and try again.";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (HttpRequestException exception)
+        {
+            logger.LogError(exception, "The API event cancellation request failed.");
+            return "We couldn't reach RaceDay. The event was not confirmed cancelled.";
+        }
+        catch (TaskCanceledException exception)
+        {
+            logger.LogWarning(exception, "The API event cancellation request timed out.");
+            return "The request timed out. Check My Events before retrying.";
+        }
+    }
+
     private IActionResult EventRequestFailure(
         Exception exception,
         OrganiserEventFormViewModel model,
@@ -1073,7 +1136,9 @@ public sealed class OrganiserController(
             item.EventDate,
             item.Location,
             item.DistanceKM,
+            item.EntryFee,
             item.EventType,
+            item.Status,
             item.RegistrationDeadline,
             item.CreatedAt,
             item.TotalEnrolments);
@@ -1088,5 +1153,13 @@ public sealed class OrganiserController(
             item.EntryFee);
 
     private static OrganiserEventViewModel EmptyEvent(int id) =>
-        new(id, string.Empty, string.Empty, default, string.Empty, 0, -1, default, default, 0);
+        new(id, string.Empty, string.Empty, default, string.Empty, 0, null, -1, 0, default, default, 0);
+
+    private void ValidateEntryFee(decimal entryFee, string propertyName)
+    {
+        if (entryFee != decimal.Round(entryFee, 2))
+        {
+            ModelState.AddModelError(propertyName, "Enter an amount with no more than two decimal places.");
+        }
+    }
 }

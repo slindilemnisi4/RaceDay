@@ -9,7 +9,9 @@ public sealed record OrganiserEventSummaryResponse(
     DateOnly EventDate,
     string Location,
     decimal DistanceKM,
+    decimal? EntryFee,
     EventTypeOption EventType,
+    EventStatus Status,
     DateOnly RegistrationDeadline,
     DateTime CreatedAt,
     int TotalEnrolments);

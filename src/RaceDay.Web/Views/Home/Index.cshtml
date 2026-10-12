@@ -42,11 +42,15 @@ else
             <div class="event-grid">
                 @foreach (var eventItem in Model.Events)
                 {
-                    <article class="event-card">
+                    <article class="event-card @(eventItem.IsCancelled ? "event-card--cancelled" : null)">
                         <div class="event-card__heading">
                             <span class="event-card__type">@eventItem.EventTypeLabel</span>
                             <h2>@eventItem.EventName</h2>
                         </div>
+                        @if (eventItem.IsCancelled)
+                        {
+                            <p class="event-status event-status--cancelled">CANCELLED</p>
+                        }
                         <p class="event-card__description">
                             @(string.IsNullOrWhiteSpace(eventItem.Description)
                                 ? "No description provided."
@@ -66,17 +70,25 @@ else
                                 <dd>@eventItem.DistanceKM.ToString("0.##") km</dd>
                             </div>
                             <div>
+                                <dt>Entry fee</dt>
+                                <dd>@eventItem.EntryFeeLabel</dd>
+                            </div>
+                            <div>
                                 <dt>Registration deadline</dt>
                                 <dd>@eventItem.RegistrationDeadline.ToString("D")</dd>
                             </div>
                         </dl>
 
-                        @if (User.IsInRole("Participant"))
+                        @if (User.IsInRole("Participant") && !eventItem.IsCancelled)
                         {
                             <a class="event-retry"
                                asp-controller="Participant"
                                asp-action="Join"
                                asp-route-eventID="@eventItem.EventID">Choose a category</a>
+                        }
+                        else if (User.IsInRole("Participant") && eventItem.IsCancelled)
+                        {
+                            <p class="event-card__join-message">Enrolment is unavailable for cancelled events.</p>
                         }
                     </article>
                 }

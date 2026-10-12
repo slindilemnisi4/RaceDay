@@ -139,3 +139,14 @@ dotnet run --project .\src\RaceDay.Web\RaceDay.Web.csproj --launch-profile http
 ```
 
 The API listens at `http://localhost:5250` and the MVC app at `http://localhost:5265`. The MVC app reads the development API address from `src/RaceDay.Web/appsettings.Development.json` (`Api:BaseUrl`). Set the `Api__BaseUrl` environment variable to an absolute HTTP or HTTPS URL when using a different API address or environment. The initial landing page does not call the API; API client methods are in place for later objectives.
+
+### Apply API database migrations
+
+The event-cancellation feature adds an `Events.Status` column. Existing events receive the `Active` value; the migration does not drop or recreate tables. Before applying it to an existing SQLite database, stop the API and make a backup of the database file. From the repository root, run:
+
+```powershell
+Copy-Item .\src\RaceDay.API\RaceDay.db "$env:USERPROFILE\RaceDay-before-event-status.db"
+dotnet ef database update --project .\src\RaceDay.API\RaceDay.API.csproj --startup-project .\src\RaceDay.API\RaceDay.API.csproj
+```
+
+Keep the backup outside the repository if the database contains data that should not be committed. The API does not apply migrations automatically at startup.

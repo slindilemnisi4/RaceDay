@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace RaceDay.Web.Models.Events;
 
 public enum EventDiscoveryState
@@ -41,7 +43,9 @@ public sealed record EventCardViewModel(
     string Location,
     decimal DistanceKM,
     int EventType,
-    DateOnly RegistrationDeadline)
+    DateOnly RegistrationDeadline,
+    decimal? EntryFee,
+    int Status)
 {
     public string EventTypeLabel => EventType switch
     {
@@ -50,10 +54,19 @@ public sealed record EventCardViewModel(
         2 => "Cycle",
         _ => "Unknown type"
     };
+
+    public string EntryFeeLabel => EntryFee is decimal fee
+        ? $"R{fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}"
+        : "See category fees";
+
+    public bool IsCancelled => Status == 1;
 }
 
 public sealed record EventCategoryViewModel(
     int CategoryID,
     string CategoryName,
     decimal? DistanceKM,
-    decimal EntryFee);
+    decimal EntryFee)
+{
+    public string EntryFeeLabel => $"R{EntryFee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}";
+}

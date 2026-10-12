@@ -47,6 +47,11 @@ public sealed class EnrolmentsController : ControllerBase
             return NotFound();
         }
 
+        if (category.Event.Status == EventStatus.Cancelled)
+        {
+            return Conflict(new { message = "Enrolment is unavailable because this event has been cancelled." });
+        }
+
         if (category.Event.RegistrationDeadline < DateOnly.FromDateTime(DateTime.UtcNow))
         {
             return Conflict(new { message = "Registration for this event is closed." });
