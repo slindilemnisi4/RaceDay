@@ -39,7 +39,7 @@
             @foreach (var item in Model.Events)
             {
                 <article class="participant-card @(item.IsCancelled ? "event-card--cancelled" : null)">
-                    <p class="welcome__eyebrow">@item.EventTypeLabel</p>
+                    <partial name="_EventTypeIndicator" model="item.EventType" />
                     @if (item.IsCancelled)
                     {
                         <p class="event-status event-status--cancelled">CANCELLED</p>

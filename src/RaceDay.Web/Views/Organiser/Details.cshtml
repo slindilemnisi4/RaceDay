@@ -15,7 +15,7 @@
     else
     {
         <header class="participant-page__header">
-            <p class="welcome__eyebrow">@Model.Event.EventTypeLabel</p>
+            <partial name="_EventTypeIndicator" model="Model.Event.EventType" />
             @if (Model.Event.IsCancelled)
             {
                 <p class="event-status event-status--cancelled">CANCELLED</p>

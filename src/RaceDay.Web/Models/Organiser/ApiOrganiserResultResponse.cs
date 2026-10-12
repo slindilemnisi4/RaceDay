@@ -8,6 +8,8 @@ public sealed class ApiOrganiserResultResponse
 
     public string EventName { get; init; } = string.Empty;
 
+    public int EventType { get; init; }
+
     public string CategoryName { get; init; } = string.Empty;
 
     public TimeSpan FinishTime { get; init; }

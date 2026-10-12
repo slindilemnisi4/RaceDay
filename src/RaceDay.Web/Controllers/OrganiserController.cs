@@ -510,6 +510,7 @@ public sealed class OrganiserController(
             var results = resultResponse.Data
                 .Select(item => new ParticipantResultViewModel(
                     item.EventName,
+                    item.EventType,
                     item.CategoryName,
                     item.FinishTime,
                     item.OverallPosition,

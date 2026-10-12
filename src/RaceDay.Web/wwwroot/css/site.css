@@ -276,6 +276,28 @@ a.primary-navigation__link.is-active {
     font-weight: 700;
 }
 
+.event-type-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 1.75rem;
+    color: #22634f;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.event-type-indicator img {
+    display: block;
+    flex: 0 0 auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+}
+
+.event-card--cancelled .event-type-indicator {
+    color: #68736e;
+}
+
 .event-card__description {
     color: #4a625b;
     line-height: 1.55;
@@ -586,6 +608,16 @@ a.primary-navigation__link.is-active {
 }
 
 .participant-card h2 {
+    margin: 0.4rem 0 0;
+    font-size: 1.25rem;
+    line-height: 1.3;
+}
+
+.selected-event-summary {
+    margin-bottom: 1rem;
+}
+
+.selected-event-summary h2 {
     margin: 0.4rem 0 0;
     font-size: 1.25rem;
     line-height: 1.3;

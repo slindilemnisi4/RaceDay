@@ -38,7 +38,15 @@
     }
     @if (Model.SelectedEventID is int selectedEventID && Model.State != RaceDay.Web.Models.Organiser.OrganiserPageState.Failure)
     {
+        var selectedEvent = Model.Events.FirstOrDefault(item => item.EventID == selectedEventID);
         <section class="participant-page">
+            @if (selectedEvent is not null)
+            {
+                <div class="selected-event-summary">
+                    <partial name="_EventTypeIndicator" model="selectedEvent.EventType" />
+                    <h2>@selectedEvent.EventName</h2>
+                </div>
+            }
             <h2>Enrolments</h2>
             @if (Model.Enrolments.Count == 0)
             {
@@ -79,6 +87,7 @@
                     @foreach (var result in Model.Results)
                     {
                         <article class="participant-card">
+                            <partial name="_EventTypeIndicator" model="result.EventType" />
                             <h3>@result.EventName</h3>
                             <p>Category: @result.CategoryName</p>
                             <p>Finish time: @result.FinishTime</p>

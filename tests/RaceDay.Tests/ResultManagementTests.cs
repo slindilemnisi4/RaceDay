@@ -26,6 +26,7 @@ public sealed class ResultManagementTests
         var stored = await fixture.DbContext.Results.SingleAsync();
         Assert.Equal(entry.EntryID, stored.EntryID);
         Assert.Equal(stored.ResultID, response.ResultID);
+        Assert.Equal(fixture.Event.EventType, response.EventType);
         Assert.InRange(stored.RecordedAt, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(1));
     }
 
@@ -118,6 +119,8 @@ public sealed class ResultManagementTests
         Assert.Equal(entry.EntryID, updated.EntryID);
         Assert.Equal(originalRecordedAt, updated.RecordedAt);
         Assert.Equal(2, updated.OverallPosition);
+        Assert.Equal(fixture.Event.EventType, Assert.IsType<ResultResponse>(
+            Assert.IsType<OkObjectResult>(result.Result).Value).EventType);
     }
 
     [Fact]
@@ -134,6 +137,7 @@ public sealed class ResultManagementTests
         var results = Assert.IsType<List<ResultResponse>>(Assert.IsType<OkObjectResult>(result.Result).Value);
         Assert.Single(results);
         Assert.Equal(ownEntry.EntryID, results[0].EntryID);
+        Assert.Equal(fixture.Event.EventType, results[0].EventType);
     }
 
     [Fact]
@@ -153,6 +157,7 @@ public sealed class ResultManagementTests
         var results = Assert.IsType<List<ResultResponse>>(Assert.IsType<OkObjectResult>(own.Result).Value);
         Assert.Single(results);
         Assert.Equal(ownResult.ResultID, results[0].ResultID);
+        Assert.Equal(fixture.Event.EventType, results[0].EventType);
         Assert.IsType<ForbidResult>(other.Result);
     }
 

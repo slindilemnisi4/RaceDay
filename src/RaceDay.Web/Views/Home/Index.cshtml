@@ -44,7 +44,7 @@ else
                 {
                     <article class="event-card @(eventItem.IsCancelled ? "event-card--cancelled" : null)">
                         <div class="event-card__heading">
-                            <span class="event-card__type">@eventItem.EventTypeLabel</span>
+                            <partial name="_EventTypeIndicator" model="eventItem.EventType" />
                             <h2>@eventItem.EventName</h2>
                         </div>
                         @if (eventItem.IsCancelled)

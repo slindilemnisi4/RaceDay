@@ -32,7 +32,10 @@
             {
                 <article class="participant-card">
                     <div class="participant-card__heading">
-                        <h2>@result.EventName</h2>
+                        <div>
+                            <partial name="_EventTypeIndicator" model="result.EventType" />
+                            <h2>@result.EventName</h2>
+                        </div>
                         <span class="event-card__type">@result.ResultStatusLabel</span>
                     </div>
                     <dl class="event-card__details">

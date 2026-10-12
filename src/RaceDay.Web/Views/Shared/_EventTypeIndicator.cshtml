@@ -1,0 +1,32 @@
+@model int
+@{
+    string label;
+    string? iconPath;
+
+    switch (Model)
+    {
+        case 0:
+            label = "Run";
+            iconPath = "~/images/event-types/running.png";
+            break;
+        case 1:
+            label = "Walk";
+            iconPath = "~/images/event-types/walking.png";
+            break;
+        case 2:
+            label = "Cycle";
+            iconPath = "~/images/event-types/cycling.png";
+            break;
+        default:
+            label = "Unknown event type";
+            iconPath = null;
+            break;
+    }
+}
+<span class="event-type-indicator">
+    @if (iconPath is not null)
+    {
+        <img src="@Url.Content(iconPath)" alt="" aria-hidden="true" />
+    }
+    <span>@label</span>
+</span>

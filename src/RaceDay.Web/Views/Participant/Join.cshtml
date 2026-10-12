@@ -41,6 +41,7 @@
             {
                 <article class="participant-card @(Model.SelectedEventID == eventItem.EventID ? "participant-card--selected" : null) @(eventItem.IsCancelled ? "event-card--cancelled" : null)"
                          id="event-@eventItem.EventID">
+                    <partial name="_EventTypeIndicator" model="eventItem.EventType" />
                     <h2>@eventItem.EventName</h2>
                     @if (eventItem.IsCancelled)
                     {

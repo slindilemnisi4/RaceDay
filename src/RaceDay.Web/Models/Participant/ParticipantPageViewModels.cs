@@ -18,6 +18,7 @@ public sealed record MyRacesViewModel(
 
 public sealed record ParticipantRaceViewModel(
     string EventName,
+    int EventType,
     DateOnly? EventDate,
     string? Location,
     string CategoryName,
@@ -37,6 +38,7 @@ public sealed record MyResultsViewModel(
 
 public sealed record ParticipantResultViewModel(
     string EventName,
+    int EventType,
     string CategoryName,
     TimeSpan FinishTime,
     int OverallPosition,
@@ -92,6 +94,7 @@ public sealed record JoinRaceViewModel(
 public sealed record JoinRaceEventViewModel(
     int EventID,
     string EventName,
+    int EventType,
     DateOnly EventDate,
     string Location,
     IReadOnlyList<EventCategoryViewModel> Categories,

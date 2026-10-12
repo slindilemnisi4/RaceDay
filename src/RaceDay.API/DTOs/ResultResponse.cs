@@ -14,6 +14,8 @@ public sealed class ResultResponse
 
     public string EventName { get; init; } = string.Empty;
 
+    public EventTypeOption EventType { get; init; }
+
     public int CategoryID { get; init; }
 
     public string CategoryName { get; init; } = string.Empty;

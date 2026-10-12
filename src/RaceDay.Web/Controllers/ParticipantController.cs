@@ -70,6 +70,7 @@ public sealed class ParticipantController(
                     categories.TryGetValue(enrolment.CategoryID, out var categoryDetails);
                     return new ParticipantRaceViewModel(
                         enrolment.EventName,
+                        eventDetails?.EventType ?? -1,
                         eventDetails?.EventDate,
                         eventDetails?.Location,
                         enrolment.CategoryName,
@@ -127,6 +128,7 @@ public sealed class ParticipantController(
             var results = response.Data
                 .Select(result => new ParticipantResultViewModel(
                     result.EventName,
+                    result.EventType,
                     result.CategoryName,
                     result.FinishTime,
                     result.OverallPosition,
@@ -337,6 +339,7 @@ public sealed class ParticipantController(
                 .Select(eventItem => new JoinRaceEventViewModel(
                     eventItem.EventID,
                     eventItem.EventName,
+                    eventItem.EventType,
                     eventItem.EventDate,
                     eventItem.Location,
                     categoryResponse.Data

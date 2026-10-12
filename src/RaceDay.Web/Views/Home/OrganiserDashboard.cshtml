@@ -51,7 +51,7 @@
                     @foreach (var eventItem in Model.Events.Take(3))
                     {
                         <article class="participant-card @(eventItem.IsCancelled ? "event-card--cancelled" : null)">
-                            <p class="welcome__eyebrow">@eventItem.EventTypeLabel</p>
+                            <partial name="_EventTypeIndicator" model="eventItem.EventType" />
                             @if (eventItem.IsCancelled)
                             {
                                 <p class="event-status event-status--cancelled">CANCELLED</p>
@@ -92,7 +92,7 @@
                 {
                     <article class="event-card @(eventItem.IsCancelled ? "event-card--cancelled" : null)">
                         <div class="event-card__heading">
-                            <span class="event-card__type">@eventItem.EventTypeLabel</span>
+                            <partial name="_EventTypeIndicator" model="eventItem.EventType" />
                             <h3>@eventItem.EventName</h3>
                         </div>
                         @if (eventItem.IsCancelled)
