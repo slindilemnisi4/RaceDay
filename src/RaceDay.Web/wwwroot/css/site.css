@@ -28,10 +28,26 @@ body {
 }
 
 .site-header__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    white-space: nowrap;
     color: #174d3d;
     font-size: 1.35rem;
     font-weight: 700;
     text-decoration: none;
+}
+
+.site-header__brand-icon {
+    display: block;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
+    object-fit: contain;
+}
+
+.site-header__brand span {
+    line-height: 1;
 }
 
 .site-header__brand.is-active {
@@ -626,6 +642,16 @@ a.primary-navigation__link.is-active {
 
     .site-header__account-links {
         gap: 0.35rem;
+    }
+
+    .site-header__brand {
+        gap: 0.5rem;
+        font-size: 1.2rem;
+    }
+
+    .site-header__brand-icon {
+        width: 2rem;
+        height: 2rem;
     }
 
     .site-header__account-link {

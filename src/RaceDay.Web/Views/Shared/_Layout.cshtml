@@ -29,7 +29,13 @@
             <a class="site-header__brand @(isAnonymousHomePage ? "is-active" : null)"
                asp-controller="Home"
                asp-action="Index"
-               aria-current="@(isAnonymousHomePage ? "page" : null)">RaceDay</a>
+               aria-current="@(isAnonymousHomePage ? "page" : null)">
+                <span>RaceDay</span>
+                <img class="site-header__brand-icon"
+                     src="~/images/raceday-runner.jpg"
+                     alt=""
+                     aria-hidden="true" />
+            </a>
             @if (isAnonymous)
             {
                 <nav class="site-header__account-links" aria-label="Account">
