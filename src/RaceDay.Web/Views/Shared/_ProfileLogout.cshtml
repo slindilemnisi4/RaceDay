@@ -1,0 +1,44 @@
+<section class="profile-logout" aria-labelledby="profile-logout-heading">
+    <h2 id="profile-logout-heading">Sign out</h2>
+    <p>End your current RaceDay session on this device.</p>
+    <button class="profile-logout__trigger"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="logout-confirmation"
+            data-logout-dialog-open="logout-confirmation">
+        <svg class="profile-logout__icon"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true"
+             focusable="false">
+            <path d="M10 17l5-5-5-5" />
+            <path d="M15 12H3" />
+            <path d="M12 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+        </svg>
+        <span>Log Out</span>
+    </button>
+</section>
+
+<dialog class="logout-dialog"
+        id="logout-confirmation"
+        aria-labelledby="logout-dialog-heading"
+        aria-describedby="logout-dialog-message">
+    <div class="logout-dialog__content">
+        <h2 id="logout-dialog-heading">Confirm log out</h2>
+        <p id="logout-dialog-message">Are you sure you want to log out?</p>
+        <div class="logout-dialog__actions">
+            <button class="logout-dialog__cancel"
+                    type="button"
+                    data-logout-dialog-close>
+                Cancel
+            </button>
+            <form asp-controller="Account" asp-action="Logout" method="post">
+                <button class="profile-logout__trigger" type="submit">Log Out</button>
+            </form>
+        </div>
+    </div>
+</dialog>

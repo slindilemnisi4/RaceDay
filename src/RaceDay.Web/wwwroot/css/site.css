@@ -612,6 +612,111 @@ a.primary-navigation__link.is-active {
     margin: 0;
 }
 
+.profile-logout {
+    width: min(100%, 42rem);
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #dce7e1;
+}
+
+.profile-logout h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.profile-logout > p {
+    margin: 0.5rem 0 1rem;
+    color: #52685f;
+    line-height: 1.5;
+}
+
+.profile-logout__trigger,
+.logout-dialog__cancel {
+    min-height: 2.75rem;
+    padding: 0.6rem 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.profile-logout__trigger {
+    border-color: #a12626;
+    background: #a12626;
+    color: #fff;
+}
+
+.profile-logout__trigger:hover {
+    border-color: #801d1d;
+    background: #801d1d;
+}
+
+.profile-logout__icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    flex: 0 0 auto;
+}
+
+.profile-logout__trigger:focus-visible,
+.logout-dialog__cancel:focus-visible {
+    outline: 3px solid #a12626;
+    outline-offset: 3px;
+}
+
+.logout-dialog {
+    width: min(100% - 2rem, 26rem);
+    padding: 0;
+    border: 1px solid #dce7e1;
+    border-radius: 0.65rem;
+    color: #18312b;
+    box-shadow: 0 1rem 3rem rgb(18 40 32 / 24%);
+}
+
+.logout-dialog::backdrop {
+    background: rgb(14 28 23 / 48%);
+}
+
+.logout-dialog__content {
+    padding: 1.5rem;
+}
+
+.logout-dialog__content h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.logout-dialog__content p {
+    margin: 0.75rem 0 1.5rem;
+    color: #4a625b;
+    line-height: 1.5;
+}
+
+.logout-dialog__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.65rem;
+}
+
+.logout-dialog__actions form {
+    margin: 0;
+}
+
+.logout-dialog__cancel {
+    border-color: #9aada5;
+    background: #fff;
+    color: #18312b;
+}
+
+.logout-dialog__cancel:hover {
+    background: #f4f8f5;
+}
+
 .join-race-form button:disabled {
     opacity: 0.7;
     cursor: wait;
