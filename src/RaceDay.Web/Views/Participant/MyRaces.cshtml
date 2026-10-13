@@ -10,6 +10,11 @@
         <p>Review the events and categories you have joined.</p>
     </header>
 
+    @if (TempData["ParticipantMessage"] is string message)
+    {
+        <p class="event-notice" role="status">@message</p>
+    }
+
     @if (Model.State == RaceDay.Web.Models.Participant.ParticipantPageState.Failure)
     {
         <section class="event-state event-state--error" role="alert">

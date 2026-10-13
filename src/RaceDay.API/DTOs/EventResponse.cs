@@ -20,6 +20,10 @@ public sealed class EventResponse
 
     public decimal? EntryFee { get; init; }
 
+    public decimal? MinimumEntryFee { get; init; }
+
+    public decimal? MaximumEntryFee { get; init; }
+
     public EventTypeOption EventType { get; init; }
 
     public EventStatus Status { get; init; }

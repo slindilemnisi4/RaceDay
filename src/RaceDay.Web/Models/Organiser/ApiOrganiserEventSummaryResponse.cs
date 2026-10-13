@@ -16,6 +16,10 @@ public sealed class ApiOrganiserEventSummaryResponse
 
     public decimal? EntryFee { get; init; }
 
+    public decimal? MinimumEntryFee { get; init; }
+
+    public decimal? MaximumEntryFee { get; init; }
+
     public int EventType { get; init; }
 
     public int Status { get; init; }

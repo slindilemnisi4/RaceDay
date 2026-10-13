@@ -26,12 +26,12 @@ public sealed class EventsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<EventResponse>>> GetAll(
         CancellationToken cancellationToken)
     {
-        var events = await dbContext.Events
+        var eventEntities = await dbContext.Events
             .AsNoTracking()
             .Include(eventEntity => eventEntity.Categories)
             .OrderBy(eventEntity => eventEntity.EventDate)
-            .Select(eventEntity => ToResponse(eventEntity))
             .ToListAsync(cancellationToken);
+        var events = eventEntities.Select(ToResponse).ToList();
 
         // Both authenticated roles can browse events; no organiser-only role
         // restriction is applied to this read-only endpoint.
@@ -52,30 +52,42 @@ public sealed class EventsController : ControllerBase
             return Unauthorized();
         }
 
-        var events = await dbContext.Events
+        var eventEntities = await dbContext.Events
             .AsNoTracking()
             .Where(eventItem => eventItem.OrganizerID == organizerID.Value)
+            .Include(eventItem => eventItem.Categories!)
+                .ThenInclude(category => category.Entries)
             .OrderBy(eventItem => eventItem.EventDate)
-            .Select(eventItem => new OrganiserEventSummaryResponse(
-                eventItem.EventID,
-                eventItem.EventName,
-                eventItem.Description,
-                eventItem.EventDate,
-                eventItem.Location,
-                eventItem.DistanceKM,
-                eventItem.Categories!
-                    .OrderBy(category => category.CategoryName.ToLower() == "general entry" ? 0 : 1)
-                    .ThenBy(category => category.EntryFee)
-                    .Select(category => (decimal?)category.EntryFee)
-                    .FirstOrDefault(),
-                eventItem.EventType,
-                eventItem.Status,
-                eventItem.RegistrationDeadline,
-                eventItem.CreatedAt,
-                eventItem.Categories!
-                    .SelectMany(category => category.Entries!)
-                    .Count()))
             .ToListAsync(cancellationToken);
+        var events = eventEntities
+            .Select(eventItem =>
+            {
+                var categories = eventItem.Categories ?? [];
+                var fees = categories.Select(category => category.EntryFee).ToList();
+                return new OrganiserEventSummaryResponse(
+                    eventItem.EventID,
+                    eventItem.EventName,
+                    eventItem.Description,
+                    eventItem.EventDate,
+                    eventItem.Location,
+                    eventItem.DistanceKM,
+                    categories
+                        .OrderBy(category => string.Equals(
+                            category.CategoryName,
+                            "General Entry",
+                            StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                        .ThenBy(category => category.EntryFee)
+                        .Select(category => (decimal?)category.EntryFee)
+                        .FirstOrDefault(),
+                    fees.Count == 0 ? null : fees.Min(),
+                    fees.Count == 0 ? null : fees.Max(),
+                    eventItem.EventType,
+                    eventItem.Status,
+                    eventItem.RegistrationDeadline,
+                    eventItem.CreatedAt,
+                    categories.Sum(category => category.Entries?.Count ?? 0));
+            })
+            .ToList();
 
         return Ok(events);
     }
@@ -335,6 +347,12 @@ public sealed class EventsController : ControllerBase
             .ThenBy(category => category.EntryFee)
             .Select(category => (decimal?)category.EntryFee)
             .FirstOrDefault(),
+        MinimumEntryFee = eventEntity.Categories?
+            .Select(category => (decimal?)category.EntryFee)
+            .Min(),
+        MaximumEntryFee = eventEntity.Categories?
+            .Select(category => (decimal?)category.EntryFee)
+            .Max(),
         Status = eventEntity.Status,
         RegistrationDeadline = eventEntity.RegistrationDeadline,
         CreatedAt = eventEntity.CreatedAt

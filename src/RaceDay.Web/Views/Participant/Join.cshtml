@@ -7,7 +7,7 @@
     <header class="participant-page__header">
         <p class="welcome__eyebrow">Participant</p>
         <h1 id="page-heading">Join Race</h1>
-        <p>Choose an event category to submit your enrolment.</p>
+        <p>Join an event directly, or choose a category when multiple options are available.</p>
     </header>
 
     @if (TempData["ParticipantMessage"] is string successMessage)
@@ -74,19 +74,30 @@
                     {
                         <form asp-action="Join" method="post" class="event-card__join join-race-form">
                             <input type="hidden" name="EventID" value="@eventItem.EventID" />
-                            <label for="category-@eventItem.EventID">Choose a category</label>
-                            <select id="category-@eventItem.EventID" name="CategoryID" required>
-                                <option value="" selected disabled>Select a category</option>
-                                @foreach (var category in eventItem.Categories)
-                                {
-                                    var distance = category.DistanceKM is decimal categoryDistance
-                                        ? $" - {categoryDistance:0.##} km"
-                                        : string.Empty;
-                                    <option value="@category.CategoryID">
-                                        @category.CategoryName@distance — @category.EntryFeeLabel
-                                    </option>
-                                }
-                            </select>
+                            @if (eventItem.Categories.Count == 1)
+                            {
+                                var category = eventItem.Categories[0];
+                                <input type="hidden" name="CategoryID" value="@category.CategoryID" />
+                                <p class="event-card__join-message">
+                                    Category: @category.CategoryName · @category.EntryFeeLabel
+                                </p>
+                            }
+                            else
+                            {
+                                <label for="category-@eventItem.EventID">Choose a category</label>
+                                <select id="category-@eventItem.EventID" name="CategoryID" required>
+                                    <option value="" selected disabled>Select a category</option>
+                                    @foreach (var category in eventItem.Categories)
+                                    {
+                                        var distance = category.DistanceKM is decimal categoryDistance
+                                            ? $" - {categoryDistance:0.##} km"
+                                            : string.Empty;
+                                        <option value="@category.CategoryID">
+                                            @category.CategoryName@distance — @category.EntryFeeLabel
+                                        </option>
+                                    }
+                                </select>
+                            }
                             <button type="submit" class="event-join-button">Join race</button>
                         </form>
                     }

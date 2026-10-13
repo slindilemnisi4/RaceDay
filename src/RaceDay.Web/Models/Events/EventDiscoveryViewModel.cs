@@ -45,7 +45,9 @@ public sealed record EventCardViewModel(
     int EventType,
     DateOnly RegistrationDeadline,
     decimal? EntryFee,
-    int Status)
+    int Status,
+    decimal? MinimumEntryFee,
+    decimal? MaximumEntryFee)
 {
     public string EventTypeLabel => EventType switch
     {
@@ -55,11 +57,16 @@ public sealed record EventCardViewModel(
         _ => "Unknown type"
     };
 
-    public string EntryFeeLabel => EntryFee is decimal fee
-        ? $"R{fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}"
-        : "See category fees";
+    public string EntryFeeLabel => MinimumEntryFee is decimal minimum
+        ? MaximumEntryFee is decimal maximum && maximum != minimum
+            ? $"R{Format(minimum)}–R{Format(maximum)}"
+            : $"R{Format(minimum)}{(minimum == 0 ? " (Free)" : string.Empty)}"
+        : "Fee unavailable";
 
     public bool IsCancelled => Status == 1;
+
+    private static string Format(decimal fee) =>
+        fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"));
 }
 
 public sealed record EventCategoryViewModel(
@@ -68,5 +75,5 @@ public sealed record EventCategoryViewModel(
     decimal? DistanceKM,
     decimal EntryFee)
 {
-    public string EntryFeeLabel => $"R{EntryFee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}";
+    public string EntryFeeLabel => $"R{EntryFee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}{(EntryFee == 0 ? " (Free)" : string.Empty)}";
 }

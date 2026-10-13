@@ -405,6 +405,7 @@ public sealed class ParticipantController(
             {
                 TempData["ParticipantMessage"] =
                     $"You joined {response.Data.EventName} in the {response.Data.CategoryName} category.";
+                return RedirectToAction(nameof(MyRaces));
             }
             else if (response.StatusCode == HttpStatusCode.Unauthorized)
             {

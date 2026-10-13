@@ -51,7 +51,7 @@
                         <div><dt>Location</dt><dd>@item.Location</dd></div>
                         <div><dt>Distance</dt><dd>@item.DistanceKM.ToString("0.##") km</dd></div>
                         <div><dt>Entry fee</dt><dd>@item.EntryFeeLabel</dd></div>
-                        <div><dt>Enrolments</dt><dd>@item.TotalEnrolments</dd></div>
+                        <div><dt>Enrolments</dt><dd>@(item.TotalEnrolments?.ToString() ?? "Unavailable")</dd></div>
                     </dl>
                     <a class="event-retry" asp-action="Details" asp-route-id="@item.EventID">Manage event</a>
                     @if (!item.IsCancelled)

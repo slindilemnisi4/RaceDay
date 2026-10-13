@@ -64,8 +64,35 @@ public sealed class EventDefaultCategoryFlowTests
         Assert.Equal(150m, category.EntryFee);
         Assert.Equal(150m, created.EntryFee);
         Assert.Equal(150m, listedEvent.EntryFee);
+        Assert.Equal(150m, listedEvent.MinimumEntryFee);
+        Assert.Equal(150m, listedEvent.MaximumEntryFee);
         Assert.IsType<CreatedResult>(enrolmentResult.Result);
         Assert.Equal(category.CategoryID, (await dbContext.Entries.SingleAsync()).CategoryID);
+
+        dbContext.Categories.Add(new Category
+        {
+            EventID = created.EventID,
+            CategoryName = "Premium Entry",
+            EntryFee = 250m
+        });
+        await dbContext.SaveChangesAsync();
+
+        var eventWithMultipleFeesResult = await eventsController.GetByID(
+            created.EventID,
+            CancellationToken.None);
+        var eventWithMultipleFees = Assert.IsType<EventResponse>(
+            Assert.IsType<OkObjectResult>(eventWithMultipleFeesResult.Result).Value);
+        Assert.Equal(150m, eventWithMultipleFees.EntryFee);
+        Assert.Equal(150m, eventWithMultipleFees.MinimumEntryFee);
+        Assert.Equal(250m, eventWithMultipleFees.MaximumEntryFee);
+
+        var organiserEventsResult = await eventsController.GetMine(CancellationToken.None);
+        var organiserEvent = Assert.Single(
+            Assert.IsType<List<OrganiserEventSummaryResponse>>(
+                Assert.IsType<OkObjectResult>(organiserEventsResult.Result).Value));
+        Assert.Equal(150m, organiserEvent.EntryFee);
+        Assert.Equal(150m, organiserEvent.MinimumEntryFee);
+        Assert.Equal(250m, organiserEvent.MaximumEntryFee);
     }
 
     private static User CreateUser(string email, UserRole role) =>

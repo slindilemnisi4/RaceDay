@@ -84,7 +84,7 @@ else
                             <a class="event-retry"
                                asp-controller="Participant"
                                asp-action="Join"
-                               asp-route-eventID="@eventItem.EventID">Choose a category</a>
+                               asp-route-eventID="@eventItem.EventID">Join Race</a>
                         }
                         else if (User.IsInRole("Participant") && eventItem.IsCancelled)
                         {

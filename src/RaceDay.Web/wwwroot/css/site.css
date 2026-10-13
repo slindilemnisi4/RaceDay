@@ -40,8 +40,8 @@ body {
 
 .site-header__brand-icon {
     display: block;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2rem;
+    height: 2rem;
     flex: 0 0 auto;
     object-fit: contain;
 }
@@ -787,8 +787,8 @@ a.primary-navigation__link.is-active {
     }
 
     .site-header__brand-icon {
-        width: 2rem;
-        height: 2rem;
+        width: 1.75rem;
+        height: 1.75rem;
     }
 
     .site-header__account-link {

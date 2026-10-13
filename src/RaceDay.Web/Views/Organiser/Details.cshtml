@@ -68,7 +68,7 @@
                             <h3>@category.CategoryName</h3>
                             <p>Distance: @(category.DistanceKM?.ToString("0.##") ?? "Not specified") km</p>
                             <p>Maximum participants: @(category.MaxParticipants?.ToString() ?? "No limit specified")</p>
-                            <p>Entry fee: R@category.EntryFee.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("en-ZA"))</p>
+                            <p>Entry fee: R@category.EntryFee.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("en-ZA"))@(category.EntryFee == 0 ? " (Free)" : string.Empty)</p>
                             @if (!Model.Event.IsCancelled
                                 && !string.Equals(category.CategoryName, "General Entry", StringComparison.OrdinalIgnoreCase))
                             {

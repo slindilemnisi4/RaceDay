@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -825,7 +826,18 @@ public sealed class OrganiserController(
             if (response.StatusCode != HttpStatusCode.OK || response.Data is null)
             {
                 LogApiFailure(response.StatusCode, "organiser events");
-                return (null, "Your events could not be loaded. Please try again.");
+                if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                {
+                    return (
+                        null,
+                        response.StatusCode == HttpStatusCode.Unauthorized
+                            ? "Your sign-in session was rejected. Sign in again."
+                            : "Your account does not have permission to view organiser events.");
+                }
+
+                return await LoadOwnedEventsFromEventListAsync(
+                    response.StatusCode,
+                    cancellationToken);
             }
 
             return (response.Data.Select(ToEventViewModel).ToList(), null);
@@ -847,6 +859,76 @@ public sealed class OrganiserController(
         catch (JsonException exception)
         {
             logger.LogError(exception, "The API returned invalid organiser event data.");
+            return (null, "The API response could not be read. Please try again.");
+        }
+    }
+
+    private async Task<(List<OrganiserEventViewModel>? Events, string? Error)>
+        LoadOwnedEventsFromEventListAsync(
+            HttpStatusCode organiserEventsStatusCode,
+            CancellationToken cancellationToken)
+    {
+        var userIdValue = User.FindFirstValue("UserID")
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdValue, out var userId) || userId <= 0)
+        {
+            logger.LogWarning("The organiser identity did not contain a valid user ID for event filtering.");
+            return (null, "Your organiser identity could not be verified. Sign in again and retry.");
+        }
+
+        try
+        {
+            var response = await apiClient.GetAsync<List<ApiEventResponse>>(
+                "api/events",
+                cancellationToken);
+            if (response.StatusCode != HttpStatusCode.OK || response.Data is null)
+            {
+                LogApiFailure(response.StatusCode, "fallback organiser event list");
+                return (null, "Your events could not be loaded. Please try again.");
+            }
+
+            logger.LogWarning(
+                "Loaded organiser-owned events from the general event endpoint after the organiser event endpoint returned HTTP {StatusCode}.",
+                (int)organiserEventsStatusCode);
+
+            return (
+                response.Data
+                    .Where(item => item.OrganizerID == userId)
+                    .Select(item => new OrganiserEventViewModel(
+                        item.EventID,
+                        item.EventName,
+                        item.Description,
+                        item.EventDate,
+                        item.Location,
+                        item.DistanceKM,
+                        item.EntryFee,
+                        item.MinimumEntryFee ?? item.EntryFee,
+                        item.MaximumEntryFee ?? item.EntryFee,
+                        item.EventType,
+                        item.Status,
+                        item.RegistrationDeadline,
+                        default,
+                        null))
+                    .ToList(),
+                null);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (HttpRequestException exception)
+        {
+            logger.LogError(exception, "The fallback API request for organiser-owned events failed.");
+            return (null, "We couldn't reach RaceDay. Please try again later.");
+        }
+        catch (TaskCanceledException exception)
+        {
+            logger.LogWarning(exception, "The fallback API request for organiser-owned events timed out.");
+            return (null, "The request timed out. Please try again.");
+        }
+        catch (JsonException exception)
+        {
+            logger.LogError(exception, "The fallback API returned invalid event data.");
             return (null, "The API response could not be read. Please try again.");
         }
     }
@@ -1138,6 +1220,8 @@ public sealed class OrganiserController(
             item.Location,
             item.DistanceKM,
             item.EntryFee,
+            item.MinimumEntryFee,
+            item.MaximumEntryFee,
             item.EventType,
             item.Status,
             item.RegistrationDeadline,
@@ -1154,7 +1238,7 @@ public sealed class OrganiserController(
             item.EntryFee);
 
     private static OrganiserEventViewModel EmptyEvent(int id) =>
-        new(id, string.Empty, string.Empty, default, string.Empty, 0, null, -1, 0, default, default, 0);
+        new(id, string.Empty, string.Empty, default, string.Empty, 0, null, null, null, -1, 0, default, default, 0);
 
     private void ValidateEntryFee(decimal entryFee, string propertyName)
     {

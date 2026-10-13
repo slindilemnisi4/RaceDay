@@ -14,20 +14,8 @@ public enum OrganiserPageState
 
 public sealed record OrganiserDashboardViewModel(
     OrganiserPageState State,
-    IReadOnlyList<OrganiserEventViewModel> Events,
-    OrganiserPageState PlatformEventsState,
-    IReadOnlyList<EventCardViewModel> PlatformEvents,
-    string? Message = null,
-    string? PlatformEventsMessage = null)
-{
-    public int TotalEvents => Events.Count;
-
-    public int UpcomingEvents => Events.Count(item => item.EventDate >= DateOnly.FromDateTime(DateTime.Today));
-
-    public int PastEvents => Events.Count(item => item.EventDate < DateOnly.FromDateTime(DateTime.Today));
-
-    public int TotalEnrolments => Events.Sum(item => item.TotalEnrolments);
-}
+    IReadOnlyList<EventCardViewModel> Events,
+    string? Message = null);
 
 public sealed record OrganiserEventViewModel(
     int EventID,
@@ -37,11 +25,13 @@ public sealed record OrganiserEventViewModel(
     string Location,
     decimal DistanceKM,
     decimal? EntryFee,
+    decimal? MinimumEntryFee,
+    decimal? MaximumEntryFee,
     int EventType,
     int Status,
     DateOnly RegistrationDeadline,
     DateTime CreatedAt,
-    int TotalEnrolments)
+    int? TotalEnrolments)
 {
     public string EventTypeLabel => EventType switch
     {
@@ -53,9 +43,14 @@ public sealed record OrganiserEventViewModel(
 
     public bool IsCancelled => Status == 1;
 
-    public string EntryFeeLabel => EntryFee is decimal fee
-        ? $"R{fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}"
-        : "See category fees";
+    public string EntryFeeLabel => MinimumEntryFee is decimal minimum
+        ? MaximumEntryFee is decimal maximum && maximum != minimum
+            ? $"R{Format(minimum)}–R{Format(maximum)}"
+            : $"R{Format(minimum)}{(minimum == 0 ? " (Free)" : string.Empty)}"
+        : "Fee unavailable";
+
+    private static string Format(decimal fee) =>
+        fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"));
 }
 
 public sealed record OrganiserEventsPageViewModel(

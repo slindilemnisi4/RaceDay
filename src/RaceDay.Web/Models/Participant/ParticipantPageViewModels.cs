@@ -27,7 +27,7 @@ public sealed record ParticipantRaceViewModel(
     DateTime EntryDate)
 {
     public string EntryFeeLabel => EntryFee is decimal fee
-        ? $"R{fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}"
+        ? $"R{fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}{(fee == 0 ? " (Free)" : string.Empty)}"
         : "Not available";
 }
 

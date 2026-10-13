@@ -10,6 +10,8 @@ public sealed record OrganiserEventSummaryResponse(
     string Location,
     decimal DistanceKM,
     decimal? EntryFee,
+    decimal? MinimumEntryFee,
+    decimal? MaximumEntryFee,
     EventTypeOption EventType,
     EventStatus Status,
     DateOnly RegistrationDeadline,

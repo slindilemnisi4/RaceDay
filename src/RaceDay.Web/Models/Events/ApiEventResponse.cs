@@ -4,6 +4,8 @@ public sealed class ApiEventResponse
 {
     public int EventID { get; init; }
 
+    public int OrganizerID { get; init; }
+
     public string EventName { get; init; } = string.Empty;
 
     public string Description { get; init; } = string.Empty;
@@ -15,6 +17,10 @@ public sealed class ApiEventResponse
     public decimal DistanceKM { get; init; }
 
     public decimal? EntryFee { get; init; }
+
+    public decimal? MinimumEntryFee { get; init; }
+
+    public decimal? MaximumEntryFee { get; init; }
 
     // The API uses System.Text.Json's default numeric enum representation.
     public int EventType { get; init; }
