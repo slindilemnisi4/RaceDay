@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDay.API.Controllers;
 using RaceDay.API.Data;
+using RaceDay.API.DTOs;
 using RaceDay.API.Models;
 using Xunit;
 
@@ -45,7 +46,7 @@ public sealed class EventDeletionTests
         });
         await fixture.DbContext.SaveChangesAsync();
 
-        var result = await fixture.Controller.Delete(eventEntity.EventID, CancellationToken.None);
+        var result = await fixture.Controller.Cancel(eventEntity.EventID, CancellationToken.None);
 
         Assert.IsType<NoContentResult>(result);
         Assert.Equal(EventStatus.Cancelled, (await fixture.DbContext.Events.SingleAsync()).Status);
@@ -55,7 +56,7 @@ public sealed class EventDeletionTests
     }
 
     [Fact]
-    public async Task OrganiserCannotCancelAnotherOrganisersEvent()
+    public async Task OrganiserCannotDeleteAnotherOrganisersEvent()
     {
         await using var fixture = TestFixture.Create(UserRole.Organiser);
         var otherOrganizer = fixture.AddUser(UserRole.Organiser, "OTHER@EXAMPLE.COM");
@@ -66,6 +67,60 @@ public sealed class EventDeletionTests
         Assert.IsType<ForbidResult>(result);
         Assert.NotNull(await fixture.DbContext.Events.FindAsync(otherEvent.EventID));
         Assert.Equal(EventStatus.Active, otherEvent.Status);
+    }
+
+    [Fact]
+    public async Task OrganiserCanPermanentlyDeleteOwnEventAndLinkedRecords()
+    {
+        await using var fixture = TestFixture.Create(UserRole.Organiser);
+        var eventEntity = fixture.AddEvent();
+        var category = new Category
+        {
+            EventID = eventEntity.EventID,
+            CategoryName = "General Entry",
+            EntryFee = 25m
+        };
+        fixture.DbContext.Categories.Add(category);
+        fixture.DbContext.Routes.Add(new Route
+        {
+            EventID = eventEntity.EventID,
+            RouteName = "Event route",
+            DistanceKM = 10
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var participant = fixture.AddUser(UserRole.Participant, "PARTICIPANT@EXAMPLE.COM");
+        var entry = new Entry
+        {
+            UserID = participant.UserID,
+            CategoryID = category.CategoryID,
+            EntryDate = DateTime.UtcNow
+        };
+        fixture.DbContext.Entries.Add(entry);
+        await fixture.DbContext.SaveChangesAsync();
+        fixture.DbContext.Results.Add(new Result
+        {
+            EntryID = entry.EntryID,
+            FinishTime = TimeSpan.FromMinutes(45),
+            OverallPosition = 1,
+            CategoryPosition = 1,
+            ResultStatus = ResultStatus.Finished,
+            RecordedAt = DateTime.UtcNow
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await fixture.Controller.Delete(eventEntity.EventID, CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Empty(await fixture.DbContext.Events.ToListAsync());
+        Assert.Empty(await fixture.DbContext.Categories.ToListAsync());
+        Assert.Empty(await fixture.DbContext.Entries.ToListAsync());
+        Assert.Empty(await fixture.DbContext.Results.ToListAsync());
+        Assert.Empty(await fixture.DbContext.Routes.ToListAsync());
+
+        var visibleEvents = await fixture.Controller.GetAll(CancellationToken.None);
+        Assert.Empty(Assert.IsType<List<EventResponse>>(
+            Assert.IsType<OkObjectResult>(visibleEvents.Result).Value));
     }
 
     [Fact]

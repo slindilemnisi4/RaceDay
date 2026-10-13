@@ -46,6 +46,7 @@
         <section class="participant-page">
             <header class="participant-page__header">
                 <h2>Categories</h2>
+                <p>Participants can enrol in the automatically created General Entry category. Add other categories only if you need them.</p>
                 @if (!Model.Event.IsCancelled)
                 {
                     <a class="event-retry" asp-action="CreateCategory" asp-route-eventID="@Model.Event.EventID">Add category</a>
@@ -100,6 +101,10 @@
             {
                 <p class="event-state">This event is cancelled. Existing enrolments and results have been kept.</p>
             }
+            <form asp-action="DeleteEvent" asp-route-id="@Model.Event.EventID" method="post"
+                  onsubmit="return confirm('Permanently delete this event and all its enrolments and results? This cannot be undone.');">
+                <button class="event-retry event-retry--danger" type="submit">Permanently delete event</button>
+            </form>
         </section>
     }
 </section>

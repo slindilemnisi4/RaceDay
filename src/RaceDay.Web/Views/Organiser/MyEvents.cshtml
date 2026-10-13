@@ -64,6 +64,10 @@
                             </form>
                         </div>
                     }
+                    <form asp-action="DeleteEvent" asp-route-id="@item.EventID" method="post"
+                          onsubmit="return confirm('Permanently delete this event and all its enrolments and results? This cannot be undone.');">
+                        <button class="event-retry event-retry--danger" type="submit">Permanently delete</button>
+                    </form>
                 </article>
             }
         </div>

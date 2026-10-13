@@ -282,12 +282,54 @@ public sealed class EventsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(
         int id,
         CancellationToken cancellationToken)
     {
-        return await SetCancelledAsync(id, cancellationToken);
+        var organizerID = GetAuthenticatedUserID();
+        if (organizerID is null)
+        {
+            return Unauthorized();
+        }
+
+        var eventEntity = await dbContext.Events
+            .Include(candidate => candidate.Categories!)
+                .ThenInclude(category => category.Entries!)
+                    .ThenInclude(entry => entry.Result)
+            .Include(candidate => candidate.Route)
+            .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
+
+        if (eventEntity is null)
+        {
+            return NotFound();
+        }
+
+        if (eventEntity.OrganizerID != organizerID.Value)
+        {
+            return Forbid();
+        }
+
+        var categories = eventEntity.Categories ?? [];
+        var entries = categories
+            .SelectMany(category => category.Entries ?? [])
+            .ToList();
+        var results = entries
+            .Where(entry => entry.Result is not null)
+            .Select(entry => entry.Result!)
+            .ToList();
+
+        dbContext.Results.RemoveRange(results);
+        dbContext.Entries.RemoveRange(entries);
+        dbContext.Categories.RemoveRange(categories);
+        if (eventEntity.Route is not null)
+        {
+            dbContext.Routes.Remove(eventEntity.Route);
+        }
+
+        dbContext.Events.Remove(eventEntity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
     }
 
     private async Task<IActionResult> SetCancelledAsync(

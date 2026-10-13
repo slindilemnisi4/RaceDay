@@ -239,6 +239,60 @@ public sealed class OrganiserController(
         return RedirectToAction(nameof(MyEvents));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteEvent(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await apiClient.DeleteAuthenticatedAsync<object>(
+                $"api/events/{id}",
+                cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NoContent)
+            {
+                TempData["OrganiserMessage"] =
+                    "The event and its enrolments and results were permanently deleted.";
+            }
+            else if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                return RedirectToAction("Login", "Account", new { sessionExpired = true });
+            }
+            else if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                TempData["OrganiserError"] = "You can only delete your own events.";
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                TempData["OrganiserError"] = "That event no longer exists.";
+            }
+            else
+            {
+                LogApiFailure(response.StatusCode, "permanent event deletion");
+                TempData["OrganiserError"] =
+                    "The event could not be permanently deleted. Please refresh and try again.";
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (HttpRequestException exception)
+        {
+            logger.LogError(exception, "The API request to permanently delete event {EventID} failed.", id);
+            TempData["OrganiserError"] =
+                "We couldn't reach RaceDay. The event was not confirmed as deleted.";
+        }
+        catch (TaskCanceledException exception)
+        {
+            logger.LogWarning(exception, "The API request to permanently delete event {EventID} timed out.", id);
+            TempData["OrganiserError"] =
+                "The request timed out. Check My Events before trying again.";
+        }
+
+        return RedirectToAction(nameof(MyEvents));
+    }
+
     [HttpGet]
     public async Task<IActionResult> CreateCategory(int eventID, CancellationToken cancellationToken)
     {
