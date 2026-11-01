@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace RaceDay.Web.Models.Events;
 
 public enum EventDiscoveryState
@@ -47,8 +45,12 @@ public sealed record EventCardViewModel(
     decimal? EntryFee,
     int Status,
     decimal? MinimumEntryFee,
-    decimal? MaximumEntryFee)
+    decimal? MaximumEntryFee,
+    IReadOnlyList<EventCategoryViewModel>? Categories = null)
 {
+    public IReadOnlyList<EventCategoryViewModel> AvailableCategories { get; } =
+        Categories ?? [];
+
     public string EventTypeLabel => EventType switch
     {
         0 => "Run",
@@ -57,16 +59,13 @@ public sealed record EventCardViewModel(
         _ => "Unknown type"
     };
 
-    public string EntryFeeLabel => MinimumEntryFee is decimal minimum
-        ? MaximumEntryFee is decimal maximum && maximum != minimum
-            ? $"R{Format(minimum)}–R{Format(maximum)}"
-            : $"R{Format(minimum)}{(minimum == 0 ? " (Free)" : string.Empty)}"
-        : "Fee unavailable";
+    public string EntryFeeLabel =>
+        EntryFeeFormatter.FormatRange(MinimumEntryFee, MaximumEntryFee, EntryFee);
 
     public bool IsCancelled => Status == 1;
 
-    private static string Format(decimal fee) =>
-        fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"));
+    public EventJoinActionViewModel JoinAction =>
+        new(EventID, IsCancelled, AvailableCategories);
 }
 
 public sealed record EventCategoryViewModel(
@@ -75,5 +74,11 @@ public sealed record EventCategoryViewModel(
     decimal? DistanceKM,
     decimal EntryFee)
 {
-    public string EntryFeeLabel => $"R{EntryFee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"))}{(EntryFee == 0 ? " (Free)" : string.Empty)}";
+    public string EntryFeeLabel => EntryFeeFormatter.Format(EntryFee);
 }
+
+public sealed record EventJoinActionViewModel(
+    int EventID,
+    bool IsCancelled,
+    IReadOnlyList<EventCategoryViewModel> Categories);
+

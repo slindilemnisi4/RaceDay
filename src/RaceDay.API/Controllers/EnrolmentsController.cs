@@ -38,27 +38,43 @@ public sealed class EnrolmentsController : ControllerBase
             return Unauthorized();
         }
 
-        var category = await dbContext.Categories
-            .Include(categoryItem => categoryItem.Event)
-            .FirstOrDefaultAsync(categoryItem => categoryItem.CategoryID == request.CategoryID, cancellationToken);
+        var eventEntity = await dbContext.Events
+            .Include(eventItem => eventItem.Categories)
+            .FirstOrDefaultAsync(eventItem => eventItem.EventID == eventID, cancellationToken);
 
-        if (category is null || category.Event is null || category.Event.EventID != eventID)
+        if (eventEntity is null)
         {
             return NotFound();
         }
 
-        if (category.Event.Status == EventStatus.Cancelled)
+        var category = ResolveEnrolmentCategory(eventEntity, request.CategoryID);
+        if (category is null && request.CategoryID is > 0)
+        {
+            return NotFound();
+        }
+
+        if (category is null)
+        {
+            ModelState.AddModelError(
+                nameof(request.CategoryID),
+                "Choose a category for this event.");
+            return ValidationProblem(ModelState);
+        }
+
+        if (eventEntity.Status == EventStatus.Cancelled)
         {
             return Conflict(new { message = "Enrolment is unavailable because this event has been cancelled." });
         }
 
-        if (category.Event.RegistrationDeadline < DateOnly.FromDateTime(DateTime.UtcNow))
+        if (eventEntity.RegistrationDeadline < DateOnly.FromDateTime(DateTime.UtcNow))
         {
             return Conflict(new { message = "Registration for this event is closed." });
         }
 
         var duplicateExists = await dbContext.Entries
-            .AnyAsync(entry => entry.UserID == userID.Value && entry.CategoryID == request.CategoryID, cancellationToken);
+            .AnyAsync(
+                entry => entry.UserID == userID.Value && entry.CategoryID == category.CategoryID,
+                cancellationToken);
 
         if (duplicateExists)
         {
@@ -68,7 +84,7 @@ public sealed class EnrolmentsController : ControllerBase
         if (category.MaxParticipants.HasValue)
         {
             var enrolmentCount = await dbContext.Entries
-                .CountAsync(entry => entry.CategoryID == request.CategoryID, cancellationToken);
+                .CountAsync(entry => entry.CategoryID == category.CategoryID, cancellationToken);
 
             if (enrolmentCount >= category.MaxParticipants.Value)
             {
@@ -90,7 +106,7 @@ public sealed class EnrolmentsController : ControllerBase
         {
             EntryID = entry.EntryID,
             EventID = category.EventID,
-            EventName = category.Event.EventName,
+            EventName = eventEntity.EventName,
             CategoryID = category.CategoryID,
             CategoryName = category.CategoryName,
             EntryDate = entry.EntryDate
@@ -186,6 +202,22 @@ public sealed class EnrolmentsController : ControllerBase
         return int.TryParse(userIDClaim, out var userID) && userID > 0
             ? userID
             : null;
+    }
+
+    private static Category? ResolveEnrolmentCategory(Event eventEntity, int? categoryID)
+    {
+        var categories = eventEntity.Categories?.ToList() ?? [];
+        if (categoryID is > 0)
+        {
+            return categories.FirstOrDefault(item => item.CategoryID == categoryID.Value);
+        }
+
+        if (categories.Count == 1)
+        {
+            return categories[0];
+        }
+
+        return null;
     }
 
     private static EnrolmentResponse ToResponse(Entry entry) => new()

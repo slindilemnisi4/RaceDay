@@ -5,5 +5,5 @@ namespace RaceDay.API.DTOs;
 public sealed class CreateEnrolmentRequest
 {
     [Range(1, int.MaxValue)]
-    public int CategoryID { get; init; }
+    public int? CategoryID { get; init; }
 }

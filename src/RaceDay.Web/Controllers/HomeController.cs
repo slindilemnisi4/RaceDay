@@ -69,6 +69,7 @@ public class HomeController(
                 return View(EventDiscoveryViewModel.Failure);
             }
 
+            var categoriesByEvent = await LoadParticipantCategoriesAsync(cancellationToken);
             var events = response.Data
                 .Select(eventResponse => new EventCardViewModel(
                     eventResponse.EventID,
@@ -82,7 +83,8 @@ public class HomeController(
                     eventResponse.EntryFee,
                     eventResponse.Status,
                     eventResponse.MinimumEntryFee,
-                    eventResponse.MaximumEntryFee))
+                    eventResponse.MaximumEntryFee,
+                    categoriesByEvent.GetValueOrDefault(eventResponse.EventID)))
                 .ToList();
 
             return View(events.Count == 0
@@ -191,6 +193,46 @@ public class HomeController(
                     OrganiserPageState.Failure,
                     [],
                     "The API response could not be read. Please try again."));
+        }
+    }
+
+    private async Task<Dictionary<int, List<EventCategoryViewModel>>> LoadParticipantCategoriesAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole("Participant"))
+        {
+            return [];
+        }
+
+        try
+        {
+            var categoryResponse = await apiClient.GetAsync<List<ApiCategoryResponse>>(
+                "api/categories",
+                cancellationToken);
+            if (categoryResponse.StatusCode != HttpStatusCode.OK || categoryResponse.Data is null)
+            {
+                logger.LogWarning(
+                    "The API returned HTTP {StatusCode} while retrieving categories for event discovery.",
+                    (int)categoryResponse.StatusCode);
+                return [];
+            }
+
+            return categoryResponse.Data
+                .GroupBy(category => category.EventID)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(category => new EventCategoryViewModel(
+                            category.CategoryID,
+                            category.CategoryName,
+                            category.DistanceKM,
+                            category.EntryFee))
+                        .ToList());
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            logger.LogWarning(exception, "Categories could not be loaded for event discovery.");
+            return [];
         }
     }
 

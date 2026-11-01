@@ -8,5 +8,5 @@ public sealed class JoinEventViewModel
     public int EventID { get; init; }
 
     [Range(1, int.MaxValue)]
-    public int CategoryID { get; init; }
+    public int? CategoryID { get; init; }
 }

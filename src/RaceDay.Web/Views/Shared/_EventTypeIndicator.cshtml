@@ -1,32 +1,21 @@
 @model int
 @{
-    string label;
-    string? iconPath;
-
-    switch (Model)
+    var (label, iconPath) = Model switch
     {
-        case 0:
-            label = "Run";
-            iconPath = "~/images/event-types/running.png";
-            break;
-        case 1:
-            label = "Walk";
-            iconPath = "~/images/event-types/walking.png";
-            break;
-        case 2:
-            label = "Cycle";
-            iconPath = "~/images/event-types/cycling.png";
-            break;
-        default:
-            label = "Unknown event type";
-            iconPath = null;
-            break;
-    }
+        0 => ("Run", "~/images/event-types/running.png"),
+        1 => ("Walk", "~/images/event-types/walking.png"),
+        2 => ("Cycle", "~/images/event-types/cycling.png"),
+        _ => ("Unknown event type", null)
+    };
 }
 <span class="event-type-indicator">
     @if (iconPath is not null)
     {
-        <img src="@Url.Content(iconPath)" alt="" aria-hidden="true" />
+        <img class="event-type-indicator__icon"
+             src="@iconPath"
+             asp-append-version="true"
+             alt=""
+             aria-hidden="true" />
     }
-    <span>@label</span>
+    <span class="event-type-indicator__label">@label</span>
 </span>

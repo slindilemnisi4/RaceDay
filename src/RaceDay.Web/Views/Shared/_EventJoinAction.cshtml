@@ -1,0 +1,32 @@
+@model RaceDay.Web.Models.Events.EventJoinActionViewModel
+
+@if (Model.IsCancelled)
+{
+    <p class="event-card__join-message">Enrolment is unavailable for cancelled events.</p>
+}
+else if (Model.Categories.Count == 0)
+{
+    <a class="event-retry"
+       asp-controller="Participant"
+       asp-action="Join"
+       asp-route-eventID="@Model.EventID">Join Race</a>
+}
+else if (Model.Categories.Count == 1)
+{
+    var category = Model.Categories[0];
+    <form asp-controller="Participant" asp-action="Join" method="post" class="event-card__join join-race-form">
+        <input type="hidden" name="EventID" value="@Model.EventID" />
+        <input type="hidden" name="CategoryID" value="@category.CategoryID" />
+        <p class="event-card__join-message">
+            @category.CategoryName · @category.EntryFeeLabel
+        </p>
+        <button type="submit" class="event-join-button">Join Race</button>
+    </form>
+}
+else
+{
+    <a class="event-retry"
+       asp-controller="Participant"
+       asp-action="Join"
+       asp-route-eventID="@Model.EventID">Join Race</a>
+}

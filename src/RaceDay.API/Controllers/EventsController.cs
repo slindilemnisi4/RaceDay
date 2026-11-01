@@ -100,16 +100,14 @@ public sealed class EventsController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        var eventResponse = await dbContext.Events
+        var eventEntity = await dbContext.Events
             .AsNoTracking()
-            .Include(eventEntity => eventEntity.Categories)
-            .Where(eventEntity => eventEntity.EventID == id)
-            .Select(eventEntity => ToResponse(eventEntity))
-            .FirstOrDefaultAsync(cancellationToken);
+            .Include(candidate => candidate.Categories)
+            .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
 
-        return eventResponse is null
+        return eventEntity is null
             ? NotFound()
-            : Ok(eventResponse);
+            : Ok(ToResponse(eventEntity));
     }
 
     [HttpPost]

@@ -342,6 +342,7 @@ public sealed class ParticipantController(
                     eventItem.EventType,
                     eventItem.EventDate,
                     eventItem.Location,
+                    eventItem.DistanceKM,
                     categoryResponse.Data
                         .Where(category => category.EventID == eventItem.EventID)
                         .Select(category => new EventCategoryViewModel(
@@ -350,7 +351,10 @@ public sealed class ParticipantController(
                             category.DistanceKM,
                             category.EntryFee))
                         .ToList(),
-                    eventItem.Status))
+                    eventItem.Status,
+                    eventItem.EntryFee,
+                    eventItem.MinimumEntryFee,
+                    eventItem.MaximumEntryFee))
                 .ToList();
 
             return View(new JoinRaceViewModel(
@@ -387,7 +391,7 @@ public sealed class ParticipantController(
     {
         if (!ModelState.IsValid)
         {
-            TempData["ParticipantMessage"] = "Choose a valid event category before joining.";
+            TempData["ParticipantError"] = "Choose a valid event before joining.";
             return RedirectToAction(nameof(Join), new { eventID = model.EventID });
         }
 
@@ -576,7 +580,9 @@ public sealed class ParticipantController(
                             "Registration for this event is closed.",
                         "This category is full." =>
                             "This category is full.",
-                        _ => "You could not join this category. Please choose another category or check My Races."
+                        "Enrolment is unavailable because this event has been cancelled." =>
+                            "This event has been cancelled and is no longer accepting enrolments.",
+                        _ => "You could not join this event. Please try another option or check My Races."
                     };
                 }
             }
@@ -591,5 +597,5 @@ public sealed class ParticipantController(
 
     private sealed record UpdateProfileApiRequest(string FirstName, string LastName, string Email);
 
-    private sealed record JoinEventApiRequest(int CategoryID);
+    private sealed record JoinEventApiRequest(int? CategoryID);
 }

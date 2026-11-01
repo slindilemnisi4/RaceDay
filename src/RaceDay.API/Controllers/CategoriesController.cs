@@ -54,6 +54,32 @@ public sealed class CategoriesController : ControllerBase
             : Ok(response);
     }
 
+    [HttpGet("~/api/events/{eventID:int}/categories")]
+    [ProducesResponseType(typeof(IReadOnlyList<CategoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<CategoryResponse>>> GetForEvent(
+        int eventID,
+        CancellationToken cancellationToken)
+    {
+        var eventExists = await dbContext.Events
+            .AsNoTracking()
+            .AnyAsync(eventItem => eventItem.EventID == eventID, cancellationToken);
+
+        if (!eventExists)
+        {
+            return NotFound();
+        }
+
+        var categories = await dbContext.Categories
+            .AsNoTracking()
+            .Where(category => category.EventID == eventID)
+            .OrderBy(category => category.CategoryID)
+            .ToListAsync(cancellationToken);
+
+        return Ok(categories.Select(ToResponse).ToList());
+    }
+
     [HttpPost]
     [Authorize(Roles = nameof(UserRole.Organiser))]
     [ProducesResponseType(typeof(CategoryResponse), StatusCodes.Status201Created)]

@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using RaceDay.Web.Models.Events;
 using RaceDay.Web.Models.Participant;
 
@@ -43,14 +42,8 @@ public sealed record OrganiserEventViewModel(
 
     public bool IsCancelled => Status == 1;
 
-    public string EntryFeeLabel => MinimumEntryFee is decimal minimum
-        ? MaximumEntryFee is decimal maximum && maximum != minimum
-            ? $"R{Format(minimum)}–R{Format(maximum)}"
-            : $"R{Format(minimum)}{(minimum == 0 ? " (Free)" : string.Empty)}"
-        : "Fee unavailable";
-
-    private static string Format(decimal fee) =>
-        fee.ToString("0.00", CultureInfo.GetCultureInfo("en-ZA"));
+    public string EntryFeeLabel =>
+        EntryFeeFormatter.FormatRange(MinimumEntryFee, MaximumEntryFee, EntryFee);
 }
 
 public sealed record OrganiserEventsPageViewModel(
