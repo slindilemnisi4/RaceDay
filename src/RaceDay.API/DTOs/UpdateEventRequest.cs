@@ -26,4 +26,6 @@ public sealed class UpdateEventRequest
     public EventTypeOption? EventType { get; init; }
 
     public DateOnly RegistrationDeadline { get; init; }
+
+    public IReadOnlyList<EventMediaRequest>? Media { get; init; }
 }

@@ -103,6 +103,7 @@ public sealed class ResultsController : ControllerBase
             .Include(resultItem => resultItem.Entry)
                 .ThenInclude(entry => entry.Category)
                     .ThenInclude(category => category.Event)
+                        .ThenInclude(eventItem => eventItem.Media)
             .FirstOrDefaultAsync(resultItem => resultItem.ResultID == resultID, cancellationToken);
 
         if (result is null)
@@ -148,6 +149,17 @@ public sealed class ResultsController : ControllerBase
                 EventID = result.Entry.Category.EventID,
                 EventName = result.Entry.Category.Event.EventName,
                 EventType = result.Entry.Category.Event.EventType,
+                Media = result.Entry.Category.Event.Media
+                    .OrderBy(media => media.DisplayOrder)
+                    .Select(media => new EventMediaResponse(
+                        media.EventMediaID,
+                        media.MediaType,
+                        media.RelativePath,
+                        media.ContentType,
+                        media.SizeBytes,
+                        media.DurationSeconds,
+                        media.DisplayOrder))
+                    .ToList(),
                 CategoryID = result.Entry.CategoryID,
                 CategoryName = result.Entry.Category.CategoryName,
                 FinishTime = result.FinishTime,
@@ -204,6 +216,17 @@ public sealed class ResultsController : ControllerBase
                 EventID = result.Entry.Category.EventID,
                 EventName = result.Entry.Category.Event.EventName,
                 EventType = result.Entry.Category.Event.EventType,
+                Media = result.Entry.Category.Event.Media
+                    .OrderBy(media => media.DisplayOrder)
+                    .Select(media => new EventMediaResponse(
+                        media.EventMediaID,
+                        media.MediaType,
+                        media.RelativePath,
+                        media.ContentType,
+                        media.SizeBytes,
+                        media.DurationSeconds,
+                        media.DisplayOrder))
+                    .ToList(),
                 CategoryID = result.Entry.CategoryID,
                 CategoryName = result.Entry.Category.CategoryName,
                 FinishTime = result.FinishTime,
@@ -243,6 +266,17 @@ public sealed class ResultsController : ControllerBase
                 EventID = resultItem.Entry.Category.EventID,
                 EventName = resultItem.Entry.Category.Event.EventName,
                 EventType = resultItem.Entry.Category.Event.EventType,
+                Media = resultItem.Entry.Category.Event.Media
+                    .OrderBy(media => media.DisplayOrder)
+                    .Select(media => new EventMediaResponse(
+                        media.EventMediaID,
+                        media.MediaType,
+                        media.RelativePath,
+                        media.ContentType,
+                        media.SizeBytes,
+                        media.DurationSeconds,
+                        media.DisplayOrder))
+                    .ToList(),
                 CategoryID = resultItem.Entry.CategoryID,
                 CategoryName = resultItem.Entry.Category.CategoryName,
                 FinishTime = resultItem.FinishTime,
@@ -272,6 +306,7 @@ public sealed class ResultsController : ControllerBase
         await dbContext.Entries
             .Include(entry => entry.Category)
                 .ThenInclude(category => category.Event)
+                    .ThenInclude(eventItem => eventItem.Media)
             .Include(entry => entry.Result)
             .FirstOrDefaultAsync(entry => entry.EntryID == entryID, cancellationToken);
 
@@ -304,6 +339,10 @@ public sealed class ResultsController : ControllerBase
         EventID = entry.Category.EventID,
         EventName = entry.Category.Event.EventName,
         EventType = entry.Category.Event.EventType,
+        Media = entry.Category.Event.Media
+            .OrderBy(media => media.DisplayOrder)
+            .Select(ToMediaResponse)
+            .ToList(),
         CategoryID = entry.CategoryID,
         CategoryName = entry.Category.CategoryName,
         FinishTime = result.FinishTime,
@@ -312,4 +351,13 @@ public sealed class ResultsController : ControllerBase
         ResultStatus = result.ResultStatus,
         RecordedAt = result.RecordedAt
     };
+
+    private static EventMediaResponse ToMediaResponse(EventMedia media) => new(
+        media.EventMediaID,
+        media.MediaType,
+        media.RelativePath,
+        media.ContentType,
+        media.SizeBytes,
+        media.DurationSeconds,
+        media.DisplayOrder);
 }

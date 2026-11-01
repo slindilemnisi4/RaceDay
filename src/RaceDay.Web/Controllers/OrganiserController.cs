@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using RaceDay.Web.Models.Events;
 using RaceDay.Web.Models.Organiser;
 using RaceDay.Web.Models.Participant;
@@ -13,7 +14,9 @@ namespace RaceDay.Web.Controllers;
 [Authorize(Roles = "Organiser")]
 public sealed class OrganiserController(
     RaceDayApiClient apiClient,
-    ILogger<OrganiserController> logger) : Controller
+    ILogger<OrganiserController> logger,
+    EventMediaStorageService mediaStorage,
+    IOptions<EventMediaStorageOptions> mediaOptions) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> MyEvents(CancellationToken cancellationToken)
@@ -74,13 +77,27 @@ public sealed class OrganiserController(
     {
         ValidateEventDates(model);
         ValidateEntryFee(model.EntryFee, nameof(model.EntryFee));
+        ValidateMediaUploadCounts(model, existingMedia: []);
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
+        var storedMedia = new List<StoredEventMedia>();
         try
         {
+            try
+            {
+                await StoreNewMediaAsync(model, storedMedia, cancellationToken);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                await CleanupStoredMediaAsync(storedMedia, "event media storage failed during event creation");
+                logger.LogError(exception, "Could not store event media while creating an event.");
+                ModelState.AddModelError(string.Empty, "Event media could not be stored. Please try again.");
+                return View(model);
+            }
+
             var response = await apiClient.SendAuthenticatedAsync<object, ApiEventResponse>(
                 HttpMethod.Post,
                 "api/events",
@@ -93,7 +110,8 @@ public sealed class OrganiserController(
                     model.DistanceKM,
                     model.EntryFee,
                     EventType = model.EventType,
-                    model.RegistrationDeadline
+                    model.RegistrationDeadline,
+                    Media = storedMedia
                 },
                 cancellationToken);
 
@@ -103,23 +121,34 @@ public sealed class OrganiserController(
                 return RedirectToAction(nameof(Details), new { id = response.Data.EventID });
             }
 
+            await CleanupStoredMediaAsync(storedMedia, "event creation was rejected");
             AddFormApiError(response.StatusCode, "The event could not be created. Check the details and try again.");
             return View(model);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            await CleanupStoredMediaAsync(storedMedia, "event creation was cancelled");
             throw;
+        }
+        catch (EventMediaValidationException exception)
+        {
+            await CleanupStoredMediaAsync(storedMedia, "media validation failed during event creation");
+            ModelState.AddModelError(string.Empty, exception.Message);
+            return View(model);
         }
         catch (HttpRequestException exception)
         {
+            LogUncertainMediaOutcome(storedMedia, "event creation request failed");
             return EventRequestFailure(exception, model);
         }
         catch (TaskCanceledException exception)
         {
+            LogUncertainMediaOutcome(storedMedia, "event creation request timed out");
             return EventRequestFailure(exception, model, timedOut: true);
         }
         catch (JsonException exception)
         {
+            LogUncertainMediaOutcome(storedMedia, "event creation response could not be read");
             logger.LogError(exception, "The API returned invalid data after event creation.");
             ModelState.AddModelError(string.Empty, "The API response could not be read. Check My Events before retrying.");
             return View(model);
@@ -158,7 +187,12 @@ public sealed class OrganiserController(
             DistanceKM = eventItem.DistanceKM,
             EntryFee = eventItem.EntryFee ?? 0,
             EventType = eventItem.EventType,
-            RegistrationDeadline = eventItem.RegistrationDeadline
+            RegistrationDeadline = eventItem.RegistrationDeadline,
+            ExistingMedia = eventItem.Media ?? [],
+            RetainedMediaIds = eventItem.Media?
+                .Where(media => !media.IsVideo)
+                .Select(media => media.EventMediaID)
+                .ToList() ?? []
         });
     }
 
@@ -172,13 +206,55 @@ public sealed class OrganiserController(
         model.EventID = id;
         ValidateEventDates(model);
         ValidateEntryFee(model.EntryFee, nameof(model.EntryFee));
+        var (ownedEvents, loadError) = await LoadEventsAsync(cancellationToken);
+        if (ownedEvents is null)
+        {
+            TempData["OrganiserError"] = loadError;
+            return RedirectToAction(nameof(MyEvents));
+        }
+
+        var existingEvent = ownedEvents.FirstOrDefault(item => item.EventID == id);
+        if (existingEvent is null)
+        {
+            return NotFound();
+        }
+
+        model.ExistingMedia = existingEvent.Media ?? [];
+        ValidateRetainedMedia(model, existingEvent.Media ?? []);
+        ValidateMediaUploadCounts(model, existingEvent.Media ?? []);
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
+        var storedMedia = new List<StoredEventMedia>();
         try
         {
+            var retainedMedia = (existingEvent.Media ?? [])
+                .Where(media => media.MediaType == 1
+                    ? model.RetainExistingVideo
+                    : model.RetainedMediaIds.Contains(media.EventMediaID))
+                .OrderBy(media => media.DisplayOrder)
+                .ToList();
+            try
+            {
+                await StoreNewMediaAsync(
+                    model,
+                    storedMedia,
+                    cancellationToken,
+                    startOrder: retainedMedia.Count);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                await CleanupStoredMediaAsync(storedMedia, "event media storage failed during event update");
+                logger.LogError(exception, "Could not store event media while updating event {EventID}.", id);
+                ModelState.AddModelError(string.Empty, "Event media could not be stored. Please try again.");
+                return View(model);
+            }
+
+            var requestedMedia = retainedMedia.Cast<object>()
+                .Concat(storedMedia.Cast<object>())
+                .ToList();
             var response = await apiClient.SendAuthenticatedAsync<object, ApiEventResponse>(
                 HttpMethod.Put,
                 $"api/events/{id}",
@@ -191,33 +267,53 @@ public sealed class OrganiserController(
                     model.DistanceKM,
                     model.EntryFee,
                     EventType = model.EventType,
-                    model.RegistrationDeadline
+                    model.RegistrationDeadline,
+                    Media = requestedMedia
                 },
                 cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.OK && response.Data is not null)
             {
+                var retainedPaths = retainedMedia
+                    .Select(media => media.RelativePath)
+                    .ToHashSet(StringComparer.Ordinal);
+                var removedPaths = (existingEvent.Media ?? [])
+                    .Where(media => !retainedPaths.Contains(media.RelativePath))
+                    .Select(media => media.RelativePath)
+                    .ToList();
+                await CleanupUnreferencedMediaAsync(removedPaths, cancellationToken);
                 TempData["OrganiserMessage"] = "The event details were updated.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
+            await CleanupStoredMediaAsync(storedMedia, "event update was rejected");
             AddFormApiError(response.StatusCode, "The event could not be updated. Check the details and try again.");
             return View(model);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            await CleanupStoredMediaAsync(storedMedia, "event update was cancelled");
             throw;
+        }
+        catch (EventMediaValidationException exception)
+        {
+            await CleanupStoredMediaAsync(storedMedia, "media validation failed during event update");
+            ModelState.AddModelError(string.Empty, exception.Message);
+            return View(model);
         }
         catch (HttpRequestException exception)
         {
+            LogUncertainMediaOutcome(storedMedia, "event update request failed");
             return EventRequestFailure(exception, model);
         }
         catch (TaskCanceledException exception)
         {
+            LogUncertainMediaOutcome(storedMedia, "event update request timed out");
             return EventRequestFailure(exception, model, timedOut: true);
         }
         catch (JsonException exception)
         {
+            LogUncertainMediaOutcome(storedMedia, "event update response could not be read");
             logger.LogError(exception, "The API returned invalid data after event update.");
             ModelState.AddModelError(string.Empty, "The API response could not be read. Check My Events before retrying.");
             return View(model);
@@ -245,12 +341,27 @@ public sealed class OrganiserController(
     {
         try
         {
+            var (events, loadError) = await LoadEventsAsync(cancellationToken);
+            var mediaPaths = events?
+                .FirstOrDefault(item => item.EventID == id)?
+                .Media?
+                .Select(media => media.RelativePath)
+                .ToList() ?? [];
+            if (events is null)
+            {
+                logger.LogWarning(
+                    "Could not load event media before permanent deletion of event {EventID}: {Error}",
+                    id,
+                    loadError);
+            }
+
             var response = await apiClient.DeleteAuthenticatedAsync<object>(
                 $"api/events/{id}",
                 cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
+                await CleanupUnreferencedMediaAsync(mediaPaths, cancellationToken);
                 TempData["OrganiserMessage"] =
                     "The event and its enrolments and results were permanently deleted.";
             }
@@ -570,7 +681,10 @@ public sealed class OrganiserController(
                     item.FinishTime,
                     item.OverallPosition,
                     item.CategoryPosition,
-                    item.ResultStatus))
+                    item.ResultStatus,
+                    item.EventID,
+                    events
+                        .FirstOrDefault(eventItem => eventItem.EventID == item.EventID)?.Media))
                 .ToList();
             var resultIdsByEntry = resultResponse.Data
                 .ToDictionary(item => item.EntryID, item => item.ResultID);
@@ -962,7 +1076,8 @@ public sealed class OrganiserController(
                         item.Status,
                         item.RegistrationDeadline,
                         default,
-                        null))
+                        null,
+                        EventMediaMapping.ToViewModels(item.Media)))
                     .ToList(),
                 null);
         }
@@ -1233,6 +1348,178 @@ public sealed class OrganiserController(
         }
     }
 
+    private void ValidateMediaUploadCounts(
+        OrganiserEventFormViewModel model,
+        IReadOnlyList<EventMediaViewModel> existingMedia)
+    {
+        var retainedImages = existingMedia.Count(item =>
+            item.MediaType == 0 && model.RetainedMediaIds.Contains(item.EventMediaID));
+        var retainedVideo = existingMedia.Any(item => item.MediaType == 1)
+            && model.RetainExistingVideo;
+        var newImages = model.ImageUploads?.Count(file => file is not null) ?? 0;
+        var newVideo = model.VideoUpload is not null;
+
+        if (retainedImages + newImages > mediaOptions.Value.MaximumImagesPerEvent)
+        {
+            ModelState.AddModelError(
+                nameof(model.ImageUploads),
+                $"An event can have up to {mediaOptions.Value.MaximumImagesPerEvent} images.");
+        }
+
+        if (retainedVideo && newVideo)
+        {
+            ModelState.AddModelError(
+                nameof(model.VideoUpload),
+                "Remove the existing video before selecting a replacement.");
+        }
+    }
+
+    private void ValidateRetainedMedia(
+        OrganiserEventFormViewModel model,
+        IReadOnlyList<EventMediaViewModel> existingMedia)
+    {
+        var allowedIds = existingMedia
+            .Where(item => !item.IsVideo)
+            .Select(item => item.EventMediaID)
+            .ToHashSet();
+        if (model.RetainedMediaIds.Any(id => !allowedIds.Contains(id)))
+        {
+            ModelState.AddModelError(
+                nameof(model.RetainedMediaIds),
+                "The submitted media selection does not belong to this event.");
+        }
+
+        if (!existingMedia.Any(item => item.MediaType == 1))
+        {
+            model.RetainExistingVideo = false;
+        }
+    }
+
+    private async Task StoreNewMediaAsync(
+        OrganiserEventFormViewModel model,
+        ICollection<StoredEventMedia> storedMedia,
+        CancellationToken cancellationToken,
+        int startOrder = 0)
+    {
+        var order = startOrder;
+        foreach (var image in model.ImageUploads ?? [])
+        {
+            storedMedia.Add(await mediaStorage.SaveImageAsync(image, order++, cancellationToken));
+        }
+
+        if (model.VideoUpload is not null)
+        {
+            storedMedia.Add(await mediaStorage.SaveVideoAsync(
+                model.VideoUpload,
+                order,
+                cancellationToken));
+        }
+    }
+
+    private async Task CleanupStoredMediaAsync(
+        IEnumerable<StoredEventMedia> media,
+        string reason)
+    {
+        foreach (var item in media)
+        {
+            try
+            {
+                await mediaStorage.DeleteAsync(item.RelativePath, CancellationToken.None);
+            }
+            catch (Exception exception) when (
+                exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                logger.LogError(
+                    exception,
+                    "Could not remove newly stored event media {RelativePath} after {Reason}.",
+                    item.RelativePath,
+                    reason);
+            }
+        }
+    }
+
+    private async Task CleanupUnreferencedMediaAsync(
+        IReadOnlyCollection<string> paths,
+        CancellationToken cancellationToken)
+    {
+        if (paths.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await apiClient.GetAsync<List<ApiEventResponse>>(
+                "api/events",
+                cancellationToken);
+            if (response.StatusCode != HttpStatusCode.OK || response.Data is null)
+            {
+                logger.LogError(
+                    "Media cleanup was deferred because the API reference check returned HTTP {StatusCode}. Orphan candidates: {RelativePaths}",
+                    (int)response.StatusCode,
+                    string.Join(", ", paths));
+                return;
+            }
+
+            var referencedPaths = response.Data
+                .SelectMany(eventItem => eventItem.Media)
+                .Select(media => media.RelativePath)
+                .ToHashSet(StringComparer.Ordinal);
+            foreach (var path in paths.Distinct(StringComparer.Ordinal))
+            {
+                if (referencedPaths.Contains(path))
+                {
+                    continue;
+                }
+
+                if (!mediaStorage.IsSafeStoredPath(path))
+                {
+                    logger.LogError("Refusing to clean unsafe event media path {RelativePath}.", path);
+                    continue;
+                }
+
+                try
+                {
+                    await mediaStorage.DeleteAsync(path, CancellationToken.None);
+                }
+                catch (Exception exception) when (
+                    exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    logger.LogError(
+                        exception,
+                        "Could not remove unreferenced event media {RelativePath}.",
+                        path);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (
+            exception is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            logger.LogError(
+                exception,
+                "Media cleanup was deferred because the API reference check failed. Orphan candidates: {RelativePaths}",
+                string.Join(", ", paths));
+        }
+    }
+
+    private void LogUncertainMediaOutcome(
+        IEnumerable<StoredEventMedia> media,
+        string reason)
+    {
+        var paths = media.Select(item => item.RelativePath).ToList();
+        if (paths.Count > 0)
+        {
+            logger.LogWarning(
+                "Preserving uploaded media after an uncertain API outcome ({Reason}). Check whether these files are referenced or orphaned: {RelativePaths}",
+                reason,
+                string.Join(", ", paths));
+        }
+    }
+
     private void ValidateEventDates(OrganiserEventFormViewModel model)
     {
         if (model.EventDate == default || model.RegistrationDeadline == default)
@@ -1280,7 +1567,8 @@ public sealed class OrganiserController(
             item.Status,
             item.RegistrationDeadline,
             item.CreatedAt,
-            item.TotalEnrolments);
+            item.TotalEnrolments,
+            EventMediaMapping.ToViewModels(item.Media));
 
     private static OrganiserCategoryViewModel ToCategoryViewModel(ApiOrganiserCategoryResponse item) =>
         new(

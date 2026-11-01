@@ -16,4 +16,5 @@ public sealed record OrganiserEventSummaryResponse(
     EventStatus Status,
     DateOnly RegistrationDeadline,
     DateTime CreatedAt,
-    int TotalEnrolments);
+    int TotalEnrolments,
+    IReadOnlyList<EventMediaResponse> Media);

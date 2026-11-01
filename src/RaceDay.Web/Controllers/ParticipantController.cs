@@ -76,7 +76,9 @@ public sealed class ParticipantController(
                         enrolment.CategoryName,
                         categoryDetails?.EntryFee,
                         eventDetails?.Status == 1,
-                        enrolment.EntryDate);
+                        enrolment.EntryDate,
+                        eventDetails?.EventID ?? enrolment.EventID,
+                        EventMediaMapping.ToViewModels(eventDetails?.Media));
                 })
                 .ToList();
 
@@ -133,7 +135,9 @@ public sealed class ParticipantController(
                     result.FinishTime,
                     result.OverallPosition,
                     result.CategoryPosition,
-                    result.ResultStatus))
+                    result.ResultStatus,
+                    result.EventID,
+                    EventMediaMapping.ToViewModels(result.Media)))
                 .ToList();
 
             return View(new MyResultsViewModel(
@@ -354,7 +358,8 @@ public sealed class ParticipantController(
                     eventItem.Status,
                     eventItem.EntryFee,
                     eventItem.MinimumEntryFee,
-                    eventItem.MaximumEntryFee))
+                    eventItem.MaximumEntryFee,
+                    EventMediaMapping.ToViewModels(eventItem.Media)))
                 .ToList();
 
             return View(new JoinRaceViewModel(

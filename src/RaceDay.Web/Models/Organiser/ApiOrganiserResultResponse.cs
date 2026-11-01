@@ -6,6 +6,8 @@ public sealed class ApiOrganiserResultResponse
 
     public int EntryID { get; init; }
 
+    public int EventID { get; init; }
+
     public string EventName { get; init; } = string.Empty;
 
     public int EventType { get; init; }

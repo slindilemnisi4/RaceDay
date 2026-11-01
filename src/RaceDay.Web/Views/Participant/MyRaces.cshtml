@@ -37,6 +37,7 @@
             @foreach (var race in Model.Races)
             {
                 <article class="participant-card @(race.IsCancelled ? "event-card--cancelled" : null)">
+                    <partial name="_EventMediaGallery" model="race.MediaGallery" />
                     <partial name="_EventTypeIndicator" model="race.EventType" />
                     <h2>@race.EventName</h2>
                     @if (race.IsCancelled)

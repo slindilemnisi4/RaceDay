@@ -26,6 +26,8 @@ public class RaceDayDbContext : DbContext
 
     public DbSet<Result> Results => Set<Result>();
 
+    public DbSet<EventMedia> EventMedia => Set<EventMedia>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -57,6 +59,30 @@ public class RaceDayDbContext : DbContext
             .WithOne(r => r.Event)
             .HasForeignKey<RaceDay.API.Models.Route>(r => r.EventID)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<EventMedia>()
+            .HasOne(media => media.Event)
+            .WithMany(eventItem => eventItem.Media)
+            .HasForeignKey(media => media.EventID)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<EventMedia>()
+            .HasIndex(media => media.RelativePath)
+            .IsUnique();
+
+        modelBuilder.Entity<EventMedia>()
+            .Property(media => media.MediaType)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<EventMedia>()
+            .Property(media => media.RelativePath)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<EventMedia>()
+            .Property(media => media.ContentType)
+            .HasMaxLength(50)
+            .IsRequired();
 
         // A category can have many entries, but each entry belongs to one category.
         modelBuilder.Entity<Entry>()

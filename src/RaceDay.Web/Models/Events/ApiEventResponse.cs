@@ -28,4 +28,6 @@ public sealed class ApiEventResponse
     public int Status { get; init; }
 
     public DateOnly RegistrationDeadline { get; init; }
+
+    public IReadOnlyList<ApiEventMediaResponse> Media { get; init; } = [];
 }

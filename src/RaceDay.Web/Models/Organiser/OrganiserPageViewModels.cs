@@ -30,8 +30,12 @@ public sealed record OrganiserEventViewModel(
     int Status,
     DateOnly RegistrationDeadline,
     DateTime CreatedAt,
-    int? TotalEnrolments)
+    int? TotalEnrolments,
+    IReadOnlyList<EventMediaViewModel>? Media = null)
 {
+    public EventMediaGalleryViewModel MediaGallery =>
+        new(EventID, Media ?? []);
+
     public string EventTypeLabel => EventType switch
     {
         0 => "Run",
@@ -102,6 +106,16 @@ public sealed class OrganiserEventFormViewModel
     [DataType(DataType.Date)]
     [Display(Name = "Registration deadline")]
     public DateOnly RegistrationDeadline { get; set; }
+
+    public List<IFormFile> ImageUploads { get; set; } = [];
+
+    public IFormFile? VideoUpload { get; set; }
+
+    public List<int> RetainedMediaIds { get; set; } = [];
+
+    public bool RetainExistingVideo { get; set; } = true;
+
+    public IReadOnlyList<EventMediaViewModel> ExistingMedia { get; set; } = [];
 }
 
 public sealed class OrganiserCategoryFormViewModel

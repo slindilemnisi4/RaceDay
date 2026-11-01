@@ -16,6 +16,8 @@ public sealed class ResultResponse
 
     public EventTypeOption EventType { get; init; }
 
+    public IReadOnlyList<EventMediaResponse> Media { get; init; } = [];
+
     public int CategoryID { get; init; }
 
     public string CategoryName { get; init; } = string.Empty;

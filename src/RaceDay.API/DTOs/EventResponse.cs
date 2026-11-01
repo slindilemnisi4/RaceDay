@@ -31,4 +31,6 @@ public sealed class EventResponse
     public DateOnly RegistrationDeadline { get; init; }
 
     public DateTime CreatedAt { get; init; }
+
+    public IReadOnlyList<EventMediaResponse> Media { get; init; } = [];
 }

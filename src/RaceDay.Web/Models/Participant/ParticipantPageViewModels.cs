@@ -23,8 +23,13 @@ public sealed record ParticipantRaceViewModel(
     string CategoryName,
     decimal? EntryFee,
     bool IsCancelled,
-    DateTime EntryDate)
+    DateTime EntryDate,
+    int EventID = 0,
+    IReadOnlyList<EventMediaViewModel>? Media = null)
 {
+    public EventMediaGalleryViewModel MediaGallery =>
+        new(EventID, Media ?? []);
+
     public string EntryFeeLabel => EntryFee is decimal fee
         ? EntryFeeFormatter.Format(fee)
         : "Not available";
@@ -42,8 +47,13 @@ public sealed record ParticipantResultViewModel(
     TimeSpan FinishTime,
     int OverallPosition,
     int CategoryPosition,
-    int ResultStatus)
+    int ResultStatus,
+    int EventID = 0,
+    IReadOnlyList<EventMediaViewModel>? Media = null)
 {
+    public EventMediaGalleryViewModel MediaGallery =>
+        new(EventID, Media ?? []);
+
     public string ResultStatusLabel => ResultStatus switch
     {
         0 => "Finished",
@@ -101,8 +111,12 @@ public sealed record JoinRaceEventViewModel(
     int Status,
     decimal? EntryFee,
     decimal? MinimumEntryFee,
-    decimal? MaximumEntryFee)
+    decimal? MaximumEntryFee,
+    IReadOnlyList<EventMediaViewModel>? Media = null)
 {
+    public EventMediaGalleryViewModel MediaGallery =>
+        new(EventID, Media ?? []);
+
     public bool IsCancelled => Status == 1;
 
     public string EntryFeeLabel =>

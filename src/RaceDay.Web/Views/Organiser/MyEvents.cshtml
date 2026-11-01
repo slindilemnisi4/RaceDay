@@ -39,6 +39,7 @@
             @foreach (var item in Model.Events)
             {
                 <article class="participant-card @(item.IsCancelled ? "event-card--cancelled" : null)">
+                    <partial name="_EventMediaGallery" model="item.MediaGallery" />
                     <partial name="_EventTypeIndicator" model="item.EventType" />
                     @if (item.IsCancelled)
                     {

@@ -1,3 +1,5 @@
+using RaceDay.Web.Models.Events;
+
 namespace RaceDay.Web.Models.Organiser;
 
 public sealed class ApiOrganiserEventSummaryResponse
@@ -29,4 +31,6 @@ public sealed class ApiOrganiserEventSummaryResponse
     public DateTime CreatedAt { get; init; }
 
     public int TotalEnrolments { get; init; }
+
+    public IReadOnlyList<ApiEventMediaResponse> Media { get; init; } = [];
 }

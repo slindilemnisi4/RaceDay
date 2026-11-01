@@ -14,10 +14,12 @@ namespace RaceDay.API.Controllers;
 public sealed class EventsController : ControllerBase
 {
     private readonly RaceDayDbContext dbContext;
+    private readonly string mediaPublicPath;
 
-    public EventsController(RaceDayDbContext dbContext)
+    public EventsController(RaceDayDbContext dbContext, IConfiguration configuration)
     {
         this.dbContext = dbContext;
+        mediaPublicPath = (configuration["EventMedia:PublicPath"] ?? "/EventMedia").TrimEnd('/');
     }
 
     [HttpGet]
@@ -29,6 +31,7 @@ public sealed class EventsController : ControllerBase
         var eventEntities = await dbContext.Events
             .AsNoTracking()
             .Include(eventEntity => eventEntity.Categories)
+            .Include(eventEntity => eventEntity.Media)
             .OrderBy(eventEntity => eventEntity.EventDate)
             .ToListAsync(cancellationToken);
         var events = eventEntities.Select(ToResponse).ToList();
@@ -57,6 +60,7 @@ public sealed class EventsController : ControllerBase
             .Where(eventItem => eventItem.OrganizerID == organizerID.Value)
             .Include(eventItem => eventItem.Categories!)
                 .ThenInclude(category => category.Entries)
+            .Include(eventItem => eventItem.Media)
             .OrderBy(eventItem => eventItem.EventDate)
             .ToListAsync(cancellationToken);
         var events = eventEntities
@@ -85,7 +89,8 @@ public sealed class EventsController : ControllerBase
                     eventItem.Status,
                     eventItem.RegistrationDeadline,
                     eventItem.CreatedAt,
-                    categories.Sum(category => category.Entries?.Count ?? 0));
+                    categories.Sum(category => category.Entries?.Count ?? 0),
+                    ToMediaResponses(eventItem.Media));
             })
             .ToList();
 
@@ -103,6 +108,7 @@ public sealed class EventsController : ControllerBase
         var eventEntity = await dbContext.Events
             .AsNoTracking()
             .Include(candidate => candidate.Categories)
+            .Include(candidate => candidate.Media)
             .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
 
         return eventEntity is null
@@ -130,7 +136,8 @@ public sealed class EventsController : ControllerBase
             || !IsValidEntryFee(request.EntryFee)
             || request.EventType is null
             || !Enum.IsDefined(request.EventType.Value)
-            || request.RegistrationDeadline > request.EventDate)
+            || request.RegistrationDeadline > request.EventDate
+            || !ValidateMedia(request.Media, allowNull: true))
         {
             ModelState.AddModelError(string.Empty, "The event details are invalid.");
             return ValidationProblem(ModelState);
@@ -170,7 +177,10 @@ public sealed class EventsController : ControllerBase
                     CategoryName = "General Entry",
                     EntryFee = request.EntryFee
                 }
-            ]
+            ],
+            Media = (request.Media ?? [])
+                .Select(media => ToMediaEntity(media))
+                .ToList()
         };
 
         dbContext.Events.Add(eventEntity);
@@ -201,7 +211,8 @@ public sealed class EventsController : ControllerBase
             || !IsValidEntryFee(request.EntryFee)
             || request.EventType is null
             || !Enum.IsDefined(request.EventType.Value)
-            || request.RegistrationDeadline > request.EventDate)
+            || request.RegistrationDeadline > request.EventDate
+            || !ValidateMedia(request.Media, allowNull: true))
         {
             ModelState.AddModelError(string.Empty, "The event details are invalid.");
             return ValidationProblem(ModelState);
@@ -215,6 +226,7 @@ public sealed class EventsController : ControllerBase
 
         var eventEntity = await dbContext.Events
             .Include(candidate => candidate.Categories)
+            .Include(candidate => candidate.Media)
             .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
 
         if (eventEntity is null)
@@ -241,6 +253,14 @@ public sealed class EventsController : ControllerBase
         eventEntity.DistanceKM = request.DistanceKM;
         eventEntity.EventType = request.EventType.Value;
         eventEntity.RegistrationDeadline = request.RegistrationDeadline;
+
+        if (request.Media is not null)
+        {
+            dbContext.EventMedia.RemoveRange(eventEntity.Media);
+            eventEntity.Media = request.Media
+                .Select(ToMediaEntity)
+                .ToList();
+        }
 
         var generalEntry = eventEntity.Categories?
             .FirstOrDefault(category =>
@@ -295,6 +315,7 @@ public sealed class EventsController : ControllerBase
                 .ThenInclude(category => category.Entries!)
                     .ThenInclude(entry => entry.Result)
             .Include(candidate => candidate.Route)
+            .Include(candidate => candidate.Media)
             .FirstOrDefaultAsync(candidate => candidate.EventID == id, cancellationToken);
 
         if (eventEntity is null)
@@ -395,8 +416,101 @@ public sealed class EventsController : ControllerBase
             .Max(),
         Status = eventEntity.Status,
         RegistrationDeadline = eventEntity.RegistrationDeadline,
-        CreatedAt = eventEntity.CreatedAt
+        CreatedAt = eventEntity.CreatedAt,
+        Media = ToMediaResponses(eventEntity.Media)
     };
+
+    private static IReadOnlyList<EventMediaResponse> ToMediaResponses(
+        IEnumerable<EventMedia>? media) =>
+        (media ?? [])
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => new EventMediaResponse(
+                item.EventMediaID,
+                item.MediaType,
+                item.RelativePath,
+                item.ContentType,
+                item.SizeBytes,
+                item.DurationSeconds,
+                item.DisplayOrder))
+            .ToList();
+
+    private static EventMedia ToMediaEntity(EventMediaRequest media) => new()
+    {
+        MediaType = media.MediaType,
+        RelativePath = media.RelativePath,
+        ContentType = media.ContentType,
+        SizeBytes = media.SizeBytes,
+        DurationSeconds = media.DurationSeconds,
+        DisplayOrder = media.DisplayOrder
+    };
+
+    private bool ValidateMedia(
+        IReadOnlyList<EventMediaRequest>? media,
+        bool allowNull)
+    {
+        if (media is null)
+        {
+            return allowNull;
+        }
+
+        var images = media.Where(item => item.MediaType == EventMediaType.Image).ToList();
+        var videos = media.Where(item => item.MediaType == EventMediaType.Video).ToList();
+        if (media.Any(item => !Enum.IsDefined(item.MediaType))
+            || images.Count > 5
+            || videos.Count > 1)
+        {
+            ModelState.AddModelError(nameof(media), "An event can have at most five images and one video.");
+            return false;
+        }
+
+        var valid = true;
+        foreach (var item in media)
+        {
+            var contentType = item.ContentType.ToLowerInvariant();
+            var extension = Path.GetExtension(item.RelativePath).ToLowerInvariant();
+            var validImage = item.MediaType == EventMediaType.Image
+                && item.SizeBytes is > 0 and <= 5_242_880
+                && item.DurationSeconds is null
+                && ((contentType == "image/jpeg" && extension is ".jpg" or ".jpeg")
+                    || (contentType == "image/png" && extension == ".png")
+                    || (contentType == "image/webp" && extension == ".webp"));
+            var validVideo = item.MediaType == EventMediaType.Video
+                && item.SizeBytes is > 0 and <= 20_971_520
+                && item.DurationSeconds is > 0 and <= 30
+                && ((contentType == "video/mp4" && extension == ".mp4")
+                    || (contentType == "video/webm" && extension == ".webm"));
+            var validPath = item.RelativePath.StartsWith($"{mediaPublicPath}/", StringComparison.Ordinal)
+                && !item.RelativePath.Contains("..", StringComparison.Ordinal)
+                && !item.RelativePath.Contains('\\')
+                && item.RelativePath.Length <= 100;
+            if (validPath)
+            {
+                var filename = item.RelativePath[(mediaPublicPath.Length + 1)..];
+                var extensionForName = Path.GetExtension(filename);
+                validPath = string.Equals(
+                    filename,
+                    Path.GetFileName(filename),
+                    StringComparison.Ordinal)
+                    && Guid.TryParseExact(Path.GetFileNameWithoutExtension(filename), "N", out _)
+                    && extensionForName is ".jpg" or ".jpeg" or ".png" or ".webp" or ".mp4" or ".webm";
+            }
+
+            if (!validPath || !(validImage || validVideo) || item.DisplayOrder < 0)
+            {
+                ModelState.AddModelError(nameof(media), "One or more media references are invalid.");
+                valid = false;
+                break;
+            }
+        }
+
+        if (media.Select(item => item.RelativePath).Distinct(StringComparer.Ordinal).Count() != media.Count)
+        {
+            ModelState.AddModelError(nameof(media), "Media paths must be unique.");
+            valid = false;
+        }
+
+        return valid;
+    }
 
     private static bool IsValidEntryFee(decimal entryFee) =>
         entryFee >= 0

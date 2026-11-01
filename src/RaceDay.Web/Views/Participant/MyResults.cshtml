@@ -31,6 +31,7 @@
             @foreach (var result in Model.Results)
             {
                 <article class="participant-card">
+                    <partial name="_EventMediaGallery" model="result.MediaGallery" />
                     <div class="participant-card__heading">
                         <div>
                             <partial name="_EventTypeIndicator" model="result.EventType" />

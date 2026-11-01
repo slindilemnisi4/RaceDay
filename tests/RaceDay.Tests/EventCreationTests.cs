@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using RaceDay.API.Controllers;
 using RaceDay.API.Data;
 using RaceDay.API.DTOs;
@@ -297,7 +298,7 @@ public sealed class EventCreationTests
             dbContext.Users.Add(user);
             dbContext.SaveChanges();
 
-            var controller = new EventsController(dbContext);
+            var controller = new EventsController(dbContext, new ConfigurationBuilder().Build());
             if (authenticated)
             {
                 controller.ControllerContext = new ControllerContext

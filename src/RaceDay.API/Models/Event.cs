@@ -46,6 +46,8 @@ public class Event
     // An event can contain many categories.
     public ICollection<Category>? Categories { get; set; } = new List<Category>();
 
+    public ICollection<EventMedia> Media { get; set; } = new List<EventMedia>();
+
     // A route is associated with the event and is unique per event in the ERD.
     public Route? Route { get; set; }
 }

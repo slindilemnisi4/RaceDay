@@ -46,10 +46,13 @@ public sealed record EventCardViewModel(
     int Status,
     decimal? MinimumEntryFee,
     decimal? MaximumEntryFee,
-    IReadOnlyList<EventCategoryViewModel>? Categories = null)
+    IReadOnlyList<EventCategoryViewModel>? Categories = null,
+    IReadOnlyList<EventMediaViewModel>? Media = null)
 {
     public IReadOnlyList<EventCategoryViewModel> AvailableCategories { get; } =
         Categories ?? [];
+
+    public IReadOnlyList<EventMediaViewModel> EventMedia { get; } = Media ?? [];
 
     public string EventTypeLabel => EventType switch
     {
@@ -66,6 +69,8 @@ public sealed record EventCardViewModel(
 
     public EventJoinActionViewModel JoinAction =>
         new(EventID, IsCancelled, AvailableCategories);
+
+    public EventMediaGalleryViewModel MediaGallery => new(EventID, EventMedia);
 }
 
 public sealed record EventCategoryViewModel(
@@ -81,4 +86,3 @@ public sealed record EventJoinActionViewModel(
     int EventID,
     bool IsCancelled,
     IReadOnlyList<EventCategoryViewModel> Categories);
-

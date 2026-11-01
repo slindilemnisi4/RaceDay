@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using RaceDay.API.Controllers;
 using RaceDay.API.Data;
 using RaceDay.API.DTOs;
@@ -24,7 +25,7 @@ public sealed class EventDefaultCategoryFlowTests
         dbContext.Users.AddRange(organiser, participant);
         await dbContext.SaveChangesAsync();
 
-        var eventsController = new EventsController(dbContext);
+        var eventsController = new EventsController(dbContext, new ConfigurationBuilder().Build());
         SetIdentity(eventsController, organiser);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var createResult = await eventsController.Create(

@@ -43,6 +43,7 @@
             @if (selectedEvent is not null)
             {
                 <div class="selected-event-summary">
+                    <partial name="_EventMediaGallery" model="selectedEvent.MediaGallery" />
                     <partial name="_EventTypeIndicator" model="selectedEvent.EventType" />
                     <h2>@selectedEvent.EventName</h2>
                 </div>

@@ -84,7 +84,8 @@ public class HomeController(
                     eventResponse.Status,
                     eventResponse.MinimumEntryFee,
                     eventResponse.MaximumEntryFee,
-                    categoriesByEvent.GetValueOrDefault(eventResponse.EventID)))
+                    categoriesByEvent.GetValueOrDefault(eventResponse.EventID),
+                    EventMediaMapping.ToViewModels(eventResponse.Media)))
                 .ToList();
 
             return View(events.Count == 0
@@ -151,7 +152,8 @@ public class HomeController(
                     item.EntryFee,
                     item.Status,
                     item.MinimumEntryFee,
-                    item.MaximumEntryFee))
+                    item.MaximumEntryFee,
+                    Media: EventMediaMapping.ToViewModels(item.Media)))
                 .ToList();
 
             return View(

@@ -1,0 +1,79 @@
+@model RaceDay.Web.Models.Events.EventMediaGalleryViewModel
+@{
+    var galleryId = $"event-media-gallery-{Model.EventID}-{Guid.NewGuid():N}";
+    var items = Model.Items.OrderBy(item => item.DisplayOrder).ToList();
+}
+<section class="event-media-gallery" aria-label="Event media">
+    @if (items.Count == 0)
+    {
+        <div class="event-media-gallery__placeholder" role="img" aria-label="No event media uploaded">
+            <span aria-hidden="true">RaceDay event</span>
+        </div>
+    }
+    else
+    {
+        <div class="event-media-gallery__thumbnails">
+            @for (var index = 0; index < items.Count; index++)
+            {
+                var media = items[index];
+                <button class="event-media-gallery__thumbnail"
+                        type="button"
+                        aria-label="Open @(media.IsVideo ? "video preview" : $"image {index + 1}") in media gallery"
+                        data-event-gallery-open="@galleryId"
+                        data-gallery-index="@index"
+                        data-gallery-src="@media.RelativePath"
+                        data-gallery-type="@(media.IsVideo ? "video" : "image")"
+                        data-gallery-content-type="@media.ContentType">
+                    @if (media.IsVideo)
+                    {
+                        <span class="event-media-gallery__video-tile" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M8 5.5v13l10-6.5z" />
+                            </svg>
+                            <span>Video preview</span>
+                        </span>
+                    }
+                    else
+                    {
+                        <img src="@media.RelativePath"
+                             alt=""
+                             loading="lazy"
+                             decoding="async" />
+                    }
+                </button>
+            }
+        </div>
+        <dialog class="event-media-dialog" id="@galleryId" aria-label="Event media gallery">
+            <div class="event-media-dialog__panel">
+                <button class="event-media-dialog__close"
+                        type="button"
+                        aria-label="Close media gallery"
+                        data-gallery-close>
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <button class="event-media-dialog__nav event-media-dialog__nav--previous"
+                        type="button"
+                        aria-label="Previous media"
+                        data-gallery-previous>
+                    <span aria-hidden="true">&#8249;</span>
+                </button>
+                <div class="event-media-dialog__stage" data-gallery-stage>
+                    <img data-gallery-image alt="" hidden />
+                    <video data-gallery-video muted playsinline autoplay loop preload="metadata" hidden>
+                        Your browser does not support video playback.
+                    </video>
+                    <p class="event-media-dialog__fallback" data-gallery-fallback hidden>
+                        This video could not be played. Try opening the event media again later.
+                    </p>
+                </div>
+                <button class="event-media-dialog__nav event-media-dialog__nav--next"
+                        type="button"
+                        aria-label="Next media"
+                        data-gallery-next>
+                    <span aria-hidden="true">&#8250;</span>
+                </button>
+                <p class="event-media-dialog__counter" aria-live="polite" data-gallery-counter></p>
+            </div>
+        </dialog>
+    }
+</section>

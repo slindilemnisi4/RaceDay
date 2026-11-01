@@ -15,6 +15,7 @@
     else
     {
         <header class="participant-page__header">
+            <partial name="_EventMediaGallery" model="Model.Event.MediaGallery" />
             <partial name="_EventTypeIndicator" model="Model.Event.EventType" />
             @if (Model.Event.IsCancelled)
             {

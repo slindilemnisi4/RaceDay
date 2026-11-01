@@ -1,9 +1,19 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using RaceDay.Web.Filters;
 using RaceDay.Web.Services;
 using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
+const long maximumMediaRequestBytes = 50 * 1024 * 1024;
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = maximumMediaRequestBytes;
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maximumMediaRequestBytes;
+});
 
 var apiProjectDirectory = Path.GetFullPath(
     Path.Combine(builder.Environment.ContentRootPath, "..", "RaceDay.API"));
@@ -76,6 +86,16 @@ builder.Services.AddHttpClient<RaceDayApiClient>(client =>
 {
     client.BaseAddress = apiBaseAddress;
 });
+builder.Services
+    .AddOptions<EventMediaStorageOptions>()
+    .Bind(builder.Configuration.GetSection(EventMediaStorageOptions.SectionName))
+    .Validate(options => options.MaximumImagesPerEvent is > 0 and <= 5)
+    .Validate(options => options.MaximumImageBytes is > 0 and <= 5 * 1024 * 1024)
+    .Validate(options => options.MaximumVideoBytes is > 0 and <= 20 * 1024 * 1024)
+    .Validate(options => options.MaximumVideoDurationSeconds is > 0 and <= 30)
+    .Validate(options => options.PublicPath.StartsWith('/') && !options.PublicPath.Contains(".."))
+    .ValidateOnStart();
+builder.Services.AddSingleton<EventMediaStorageService>();
 
 var app = builder.Build();
 
@@ -88,6 +108,7 @@ app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 app.MapStaticAssets();
 app.MapControllerRoute(
     name: "default",

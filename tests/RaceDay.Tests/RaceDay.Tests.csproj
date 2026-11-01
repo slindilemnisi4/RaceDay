@@ -29,6 +29,9 @@
 
     <!-- Allows the tests to access RaceDay.API controllers, models and services -->
     <ProjectReference Include="..\..\src\RaceDay.API\RaceDay.API.csproj" />
+    <ProjectReference Include="..\..\src\RaceDay.Web\RaceDay.Web.csproj">
+      <Aliases>RaceDayWeb</Aliases>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

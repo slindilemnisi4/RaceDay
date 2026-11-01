@@ -2,7 +2,7 @@
 @{
     var formAction = ViewData["FormAction"]?.ToString() ?? "CreateEvent";
 }
-<form asp-action="@formAction" asp-route-id="@Model.EventID" method="post" class="participant-card">
+<form asp-action="@formAction" asp-route-id="@Model.EventID" method="post" enctype="multipart/form-data" class="participant-card">
     <div asp-validation-summary="ModelOnly" class="event-state event-state--error" role="alert"></div>
     <div class="form-field">
         <label asp-for="EventName"></label>
@@ -49,6 +49,68 @@
         <input asp-for="RegistrationDeadline" type="date" />
         <span asp-validation-for="RegistrationDeadline"></span>
     </div>
+    <section class="event-media-upload" aria-labelledby="media-upload-heading">
+        <h2 id="media-upload-heading">Event media</h2>
+        <p>Media is optional. Add up to five JPEG, PNG, or WebP images (5 MB each) and one silent MP4 or WebM preview video (20 MB, up to 30 seconds).</p>
+        @if (Model.ExistingMedia.Count > 0)
+        {
+            <h3>Currently saved media</h3>
+            <div class="event-media-upload__existing">
+                @foreach (var media in Model.ExistingMedia.OrderBy(item => item.DisplayOrder))
+                {
+                    if (media.IsVideo)
+                    {
+                        <div class="event-media-upload__item">
+                            <span class="event-media-upload__video-symbol" aria-hidden="true">▶</span>
+                            <span>Existing video preview</span>
+                            <label>
+                                <input asp-for="RetainExistingVideo" data-retain-event-video />
+                                Keep this video
+                            </label>
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="event-media-upload__item">
+                            <img src="@media.RelativePath" alt="Existing event image" loading="lazy" />
+                            <span>
+                                <input type="checkbox"
+                                       name="RetainedMediaIds"
+                                       value="@media.EventMediaID"
+                                       checked="@(Model.RetainedMediaIds.Contains(media.EventMediaID))" />
+                                Keep this image
+                            </span>
+                        </label>
+                    }
+                }
+            </div>
+        }
+        <div class="form-field">
+            <label asp-for="ImageUploads">Add images</label>
+            <input asp-for="ImageUploads"
+                   type="file"
+                   accept="image/jpeg,image/png,image/webp"
+                   multiple
+                   data-event-image-input />
+            <small data-event-image-count>0 of 5 new images selected.</small>
+            <span asp-validation-for="ImageUploads"></span>
+            <div class="event-media-upload__preview" data-event-image-preview aria-live="polite"></div>
+        </div>
+        <div class="form-field">
+            <label asp-for="VideoUpload">Optional video</label>
+            <input asp-for="VideoUpload"
+                   type="file"
+                   accept="video/mp4,video/webm"
+                   data-event-video-input />
+            <span asp-validation-for="VideoUpload"></span>
+            <video class="event-media-upload__video-preview"
+                   data-event-video-preview
+                   muted
+                   playsinline
+                   preload="metadata"
+                   hidden></video>
+        </div>
+    </section>
     <div class="organiser-actions">
         <button class="event-retry" type="submit">Save event</button>
         <a class="event-retry" asp-action="MyEvents">Cancel</a>

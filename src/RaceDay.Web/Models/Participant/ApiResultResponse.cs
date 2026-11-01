@@ -4,7 +4,11 @@ public sealed class ApiResultResponse
 {
     public string EventName { get; init; } = string.Empty;
 
+    public int EventID { get; init; }
+
     public int EventType { get; init; }
+
+    public IReadOnlyList<RaceDay.Web.Models.Events.ApiEventMediaResponse> Media { get; init; } = [];
 
     public string CategoryName { get; init; } = string.Empty;
 

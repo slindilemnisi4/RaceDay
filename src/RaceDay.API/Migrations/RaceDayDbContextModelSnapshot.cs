@@ -128,6 +128,48 @@ namespace RaceDay.API.Migrations
                     b.ToTable("Events");
                 });
 
+            modelBuilder.Entity("RaceDay.API.Models.EventMedia", b =>
+                {
+                    b.Property<int>("EventMediaID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("DurationSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("EventID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("EventMediaID");
+
+                    b.HasIndex("EventID");
+
+                    b.HasIndex("RelativePath")
+                        .IsUnique();
+
+                    b.ToTable("EventMedia");
+                });
+
             modelBuilder.Entity("RaceDay.API.Models.Result", b =>
                 {
                     b.Property<int>("ResultID")
@@ -280,6 +322,17 @@ namespace RaceDay.API.Migrations
                     b.Navigation("Organizer");
                 });
 
+            modelBuilder.Entity("RaceDay.API.Models.EventMedia", b =>
+                {
+                    b.HasOne("RaceDay.API.Models.Event", "Event")
+                        .WithMany("Media")
+                        .HasForeignKey("EventID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
             modelBuilder.Entity("RaceDay.API.Models.Result", b =>
                 {
                     b.HasOne("RaceDay.API.Models.Entry", "Entry")
@@ -315,6 +368,8 @@ namespace RaceDay.API.Migrations
             modelBuilder.Entity("RaceDay.API.Models.Event", b =>
                 {
                     b.Navigation("Categories");
+
+                    b.Navigation("Media");
 
                     b.Navigation("Route");
                 });
