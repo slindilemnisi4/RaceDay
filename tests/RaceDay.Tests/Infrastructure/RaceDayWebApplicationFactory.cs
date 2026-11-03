@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RaceDay.API.Data;
@@ -21,13 +22,15 @@ public class RaceDayWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             // Remove the application's normal database registration.
+            services.RemoveAll<IDbContextOptionsConfiguration<RaceDayDbContext>>();
             services.RemoveAll<DbContextOptions<RaceDayDbContext>>();
             services.RemoveAll<RaceDayDbContext>();
 
             // Use a unique in-memory database for each test host.
+            var databaseName = $"RaceDayTest_{Guid.NewGuid()}";
             services.AddDbContext<RaceDayDbContext>(options =>
             {
-                options.UseInMemoryDatabase($"RaceDayTest_{Guid.NewGuid()}");
+                options.UseInMemoryDatabase(databaseName);
             });
         });
     }
