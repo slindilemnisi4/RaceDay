@@ -1,152 +1,146 @@
 # RaceDay
 
-RaceDay is a full-stack web-based event management system for the South African road running, walking and cycling community.
+RaceDay is a web-based event management platform for the South African road running, walking, and cycling community. Participants can discover and enter events, while organisers can create and manage events, categories, entries, and results.
 
-## Project Overview
-
-Many road events still rely on paper-based registration, spreadsheets and disconnected communication. This creates difficulties for both organisers and participants when managing event information, registrations and results.
-
-RaceDay provides a centralised platform for managing events, categories, enrolments and results.
-
-## User Roles
-
-### Organiser
-
-- Manage events
-- Manage categories
-- View event enrolments
-- Capture participant results
+## What you can do
 
 ### Participant
 
-- Register and log in
-- Browse events
-- Enter events
-- Select categories
-- View own enrolments
-- View personal results
+- Create an account and sign in
+- Browse events and enter event categories
+- View enrolments and personal results
 
-## Part 1 - System Planning and Database
+### Organiser
 
-Part 1 established the system's foundation through:
+- Create and manage events and categories
+- View event entries
+- Capture participant results
+- Add event images and videos
 
-- ERD and database design
-- RESTful API planning
-- SQL Server database schema and seed data
-- Role-based system planning
-
-The six approved database entities are Users, Events, Categories, Routes, Entries and Results.
-
-## Repository Structure
-
-```text
-RaceDay/
-|-- docs/
-|   |-- RaceDay_ERD.png
-|   `-- RaceDay_API_Endpoint_Plan.md
-|-- src/
-|   |-- RaceDay.API/
-|   `-- RaceDay.Web/
-|-- tests/
-|   `-- RaceDay.Tests/
-|-- RaceDay_Database.sql
-|-- .github/workflows/
-|   `-- raceday-ci.yml
-|-- README.md
-`-- .gitignore
-```
-
-The `docs` directory contains the approved Part 1 planning documentation. Part 2's API is under `src/RaceDay.API`, and Part 3's MVC foundation is under `src/RaceDay.Web`. The Part 1 database script is at the repository root.
+Organiser accounts require an invitation code. The local development codes are listed below.
 
 ## Technology
 
-- SQL Server
-- SQL Server Management Studio (SSMS)
-- GitHub
-- GitHub Actions
+- ASP.NET Core MVC web application and ASP.NET Core REST API
+- .NET 10
+- SQLite with Entity Framework Core migrations
+- xUnit tests
 
-## Getting Started
+SQL Server and SQL Server Management Studio are **not** required to run the current application.
 
-### Prerequisites
+## Requirements
 
-- Microsoft SQL Server (2019 or later recommended)
-- SQL Server Management Studio (SSMS)
+- Windows, macOS, or Linux
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - Git
+- A modern web browser
 
-### Setup Instructions
+The application uses a local HTTPS development certificate. If you have not trusted one on your machine, run `dotnet dev-certs https --trust` and accept the operating system prompt. On Linux, follow the .NET documentation for configuring a trusted development certificate.
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Slindile48th/RaceDay.git
-   cd RaceDay
+`ffprobe` is only needed for video upload duration validation. Install FFmpeg and make sure `ffprobe` is on your `PATH` if you want to test video uploads.
+
+## Get the source
+
+```powershell
+git clone https://github.com/Slindile-04/RaceDay.git
+cd RaceDay
+```
+
+## Run RaceDay locally
+
+The API and web application run as separate processes. Open two terminals in the repository root.
+
+1. In the first terminal, start the API using its HTTPS launch profile:
+
+   ```powershell
+   dotnet run --project .\src\RaceDay.API\RaceDay.API.csproj --launch-profile https
    ```
 
-2. **Open the database script:**
-   - Open SQL Server Management Studio
-   - Open the file `src/RaceDay_Database.sql`
+   The API listens at `https://localhost:7059` (and `http://localhost:5250`). The web app is configured to call the HTTPS API address.
 
-3. **Execute the script:**
-   - Click the **Execute** button or press `Ctrl+E`
-   - The script will:
-     - Create the RaceDay database
-     - Create all six required tables (Users, Events, Categories, Routes, Entries, Results)
-     - Apply all keys and constraints
-     - Insert sample data
-     - Run verification queries
+2. In the second terminal, start the web application:
 
-4. **Verify the setup:**
-   - In the Object Explorer, expand **Databases** and verify that **RaceDay** appears
-   - Expand the RaceDay database and verify that all six tables are present
-   - The script output will display the sample data and verification query results
+   ```powershell
+   dotnet run --project .\src\RaceDay.Web\RaceDay.Web.csproj --launch-profile https
+   ```
 
-### Database Structure
+3. When the web app has started, copy **https://localhost:7265** into your preferred browser and press Enter. The HTTPS launch profile may open a browser automatically; you can also paste the address yourself.
 
-The RaceDay database includes:
+If the browser displays a certificate warning, trust the .NET development HTTPS certificate as described under [Requirements](#requirements), then reload the page.
 
-- **Users** – system accounts for Organisers and Participants
-- **Events** – races managed by Organisers
-- **Categories** – event categories (e.g., age groups, distances)
-- **Routes** – route information for each event
-- **Entries** – participant enrolments in event categories
-- **Results** – participant results and finishing positions
+The API's Swagger UI is available at [https://localhost:7059/swagger](https://localhost:7059/swagger) while the API is running.
 
-## CI/CD
+## Create an account
 
-GitHub Actions automatically validates the required RaceDay repository structure whenever changes are pushed or a pull request is opened or updated.
+On the RaceDay site, select **Register**, enter your details, and choose a role:
 
-The successful GitHub Actions build screenshot will be added here after the workflow runs successfully:
+- **Participant:** Register without an invitation code.
+- **Organiser:** Choose Organiser and enter one of the local development invitation codes:
 
-![GitHub Actions CI Build](docs/github-actions-success.png)
+  | Invitation code |
+  |---|
+  | `6842` |
+  | `1739` |
+  | `5206` |
+  | `9471` |
+  | `3058` |
 
-## Development Status
+These codes are included for local testing and demonstration only. Do not use them to protect a production service. Organiser codes for the API are configured under `Registration:OrganiserCodes` in `src/RaceDay.API/appsettings.json`; use private configuration or environment variables for real deployments.
 
-Part 1 - System Planning and Database has been completed and verified.
+## Database
 
-Part 2 implements the RaceDay REST API. Part 3 Objective 1 establishes the ASP.NET Core MVC application foundation.
+The API uses SQLite. Its connection string is `Data Source=RaceDay.db` in `src/RaceDay.API/appsettings.json`. Database migrations are **not** applied automatically when the API starts.
 
-### Run the API and MVC application locally
-
-The API and MVC app are separate projects. Start the API in one terminal:
+The repository includes `src/RaceDay.API/RaceDay.db` for local development. To create or update the database schema from the current migrations, install the EF Core command-line tool if needed:
 
 ```powershell
-dotnet run --project .\src\RaceDay.API\RaceDay.API.csproj --launch-profile http
+dotnet tool install --global dotnet-ef --version 10.0.11
 ```
 
-Then start the MVC app in another terminal:
+If `dotnet-ef` is already installed, update it instead:
 
 ```powershell
-dotnet run --project .\src\RaceDay.Web\RaceDay.Web.csproj --launch-profile http
+dotnet tool update --global dotnet-ef --version 10.0.11
 ```
 
-The API listens at `http://localhost:5250` and the MVC app at `http://localhost:5265`. The MVC app reads the development API address from `src/RaceDay.Web/appsettings.Development.json` (`Api:BaseUrl`). Set the `Api__BaseUrl` environment variable to an absolute HTTP or HTTPS URL when using a different API address or environment. The initial landing page does not call the API; API client methods are in place for later objectives.
-
-### Apply API database migrations
-
-The event-cancellation feature adds an `Events.Status` column. Existing events receive the `Active` value; the migration does not drop or recreate tables. Before applying it to an existing SQLite database, stop the API and make a backup of the database file. From the repository root, run:
+Then run the migration command from the repository root:
 
 ```powershell
-Copy-Item .\src\RaceDay.API\RaceDay.db "$env:USERPROFILE\RaceDay-before-event-status.db"
 dotnet ef database update --project .\src\RaceDay.API\RaceDay.API.csproj --startup-project .\src\RaceDay.API\RaceDay.API.csproj
 ```
 
-Keep the backup outside the repository if the database contains data that should not be committed. The API does not apply migrations automatically at startup.
+Before applying migrations to a database with data you want to keep, stop the API and make a backup:
+
+```powershell
+Copy-Item .\src\RaceDay.API\RaceDay.db "$env:USERPROFILE\RaceDay-before-migrations.db"
+```
+
+Keep database backups outside the repository.
+
+## Build and test
+
+From the repository root:
+
+```powershell
+dotnet build .\src\RaceDay.API\RaceDay.API.csproj
+dotnet build .\src\RaceDay.Web\RaceDay.Web.csproj
+dotnet test .\tests\RaceDay.Tests\RaceDay.Tests.csproj
+```
+
+## Repository layout
+
+```text
+RaceDay/
+|-- docs/                 Planning and project documentation
+|-- src/
+|   |-- RaceDay.API/      REST API, SQLite database, and migrations
+|   `-- RaceDay.Web/      ASP.NET Core MVC application
+|-- tests/
+|   `-- RaceDay.Tests/    Automated tests
+|-- .github/workflows/    GitHub Actions CI
+`-- README.md
+```
+
+## CI
+
+GitHub Actions runs repository validation when changes are pushed or a pull request is opened or updated.
